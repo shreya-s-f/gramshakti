@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Crop Doctor — GramShakti</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+
+  <style>
+  /* =============================================
+     CSS VARIABLES
+  ============================================= */
+  :root {
+    --green-dark:  #1a3c2e;
+    --green-mid:   #2d6a4f;
+    --green-light: #52b788;
+    --green-pale:  #d8f3dc;
+    --gold:        #f4a261;
+    --gold-pale:   #fff3e0;
+    --cream:       #fefae0;
+    --white:       #ffffff;
+    --text-dark:   #1b1b1b;
+    --text-mid:    #4a4a4a;
+    --text-light:  #888888;
+    --danger:      #e63946;
+    --danger-pale: #ffebee;
+    --warning:     #f4a261;
+    --warning-pale:#fff3e0;
+    --sky:         #4cc9f0;
+    --sky-pale:    #e3f8ff;
+    --sidebar-w:   260px;
+    --radius-sm:   8px;
+    --radius-md:   14px;
+    --radius-lg:   20px;
+    --shadow-sm:   0 2px 8px rgba(0,0,0,0.07);
+    --shadow-md:   0 4px 20px rgba(0,0,0,0.12);
+    --shadow-lg:   0 8px 32px rgba(0,0,0,0.16);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family:'Plus Jakarta Sans',sans-serif;
+    background:var(--cream); color:var(--text-dark);
+    min-height:100vh; display:flex;
+  }
+
+  /* =============================================
+     SIDEBAR
+  ============================================= */
+  .sidebar {
+    width:var(--sidebar-w); min-height:100vh;
+    background:var(--green-dark);
+    display:flex; flex-direction:column;
+    position:fixed; top:0; left:0; z-index:100;
+    transition:transform 0.3s ease;
+  }
+  @media(max-width:768px){ .sidebar{ transform:translateX(-100%); } .sidebar.open{ transform:translateX(0); } }
+  .sidebar-logo { padding:28px 24px 20px; border-bottom:1px solid rgba(255,255,255,0.1); }
+  .logo-title { font-family:'Playfair Display',serif; font-size:22px; font-weight:800; color:var(--white); }
+  .logo-title span { color:var(--green-light); }
+  .logo-tag { font-size:11px; color:rgba(255,255,255,0.4); margin-top:3px; letter-spacing:.1em; text-transform:uppercase; }
+  .sidebar-nav { flex:1; padding:16px 12px; overflow-y:auto; }
+  .nav-label { font-size:10px; color:rgba(255,255,255,0.3); text-transform:uppercase; letter-spacing:.12em; padding:12px 12px 6px; }
+  .nav-item { display:flex; align-items:center; gap:12px; padding:11px 14px; border-radius:var(--radius-sm); color:rgba(255,255,255,0.65); cursor:pointer; transition:all 0.2s; margin-bottom:2px; font-size:13.5px; font-weight:500; text-decoration:none; }
+  .nav-item:hover { background:rgba(255,255,255,0.08); color:var(--white); transform:translateX(4px); }
+  .nav-item.active { background:var(--green-light); color:var(--green-dark); font-weight:600; }
+  .nav-badge { margin-left:auto; background:var(--gold); color:var(--green-dark); font-size:10px; font-weight:700; padding:2px 7px; border-radius:20px; }
+  .sidebar-bottom { padding:16px; border-top:1px solid rgba(255,255,255,0.1); }
+  .user-card { display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.07); padding:10px 12px; border-radius:var(--radius-sm); }
+  .user-avatar { width:36px; height:36px; border-radius:50%; background:var(--green-light); display:flex; align-items:center; justify-content:center; font-size:16px; }
+  .user-name { font-size:13px; font-weight:600; color:var(--white); }
+  .user-sub  { font-size:11px; color:rgba(255,255,255,0.4); }
+
+  /* =============================================
+     MAIN LAYOUT
+  ============================================= */
+  .main { flex:1; margin-left:var(--sidebar-w); display:flex; flex-direction:column; min-height:100vh; }
+  @media(max-width:768px){ .main{ margin-left:0; } }
+
+  .topbar { background:var(--white); padding:0 28px; height:68px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid rgba(0,0,0,0.06); box-shadow:var(--shadow-sm); position:sticky; top:0; z-index:50; gap:16px; }
+  .topbar-left { display:flex; align-items:center; gap:14px; }
+  .hamburger { display:none; flex-direction:column; gap:5px; cursor:pointer; padding:4px; background:none; border:none; }
+  @media(max-width:768px){ .hamburger{ display:flex; } }
+  .ham-line { width:22px; height:2px; background:var(--text-dark); border-radius:2px; }
+  .page-title { font-family:'Playfair Display',serif; font-size:20px; font-weight:700; }
+  .page-sub   { font-size:12px; color:var(--text-light); margin-top:1px; }
+  .topbar-right { display:flex; align-items:center; gap:10px; }
+  .ai-badge { display:flex; align-items:center; gap:6px; background:var(--green-pale); color:var(--green-dark); padding:6px 14px; border-radius:20px; font-size:12px; font-weight:700; }
+  .ai-dot { width:7px; height:7px; border-radius:50%; background:var(--green-light); animation:blink 1.5s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .content { flex:1; padding:28px; }
+  @media(max-width:768px){ .content{ padding:16px; } }
+
+  /* =============================================
+     HERO SECTION
+  ============================================= */
+  .page-hero {
+    background:linear-gradient(135deg,#1a3c2e,#2d6a4f);
+    border-radius:var(--radius-lg); padding:32px 36px;
+    margin-bottom:24px; color:white; position:relative; overflow:hidden;
+  }
+  .page-hero::before { content:''; position:absolute; width:300px; height:300px; border-radius:50%; background:rgba(82,183,136,0.1); top:-100px; right:-60px; }
+  .page-hero::after  { content:''; position:absolute; width:200px; height:200px; border-radius:50%; background:rgba(244,162,97,0.08); bottom:-80px; left:200px; }
+  .hero-inner { position:relative; z-index:1; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:20px; }
+  .hero-text h1 { font-family:'Playfair Display',serif; font-size:26px; font-weight:800; margin-bottom:8px; }
+  .hero-text h1 span { color:var(--green-light); }
+  .hero-text p { font-size:13px; color:rgba(255,255,255,0.7); max-width:460px; line-height:1.6; margin-bottom:16px; }
+  .hero-chips { display:flex; gap:8px; flex-wrap:wrap; }
+  .h-chip { background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2); padding:5px 12px; border-radius:20px; font-size:11px; font-weight:600; }
+  .hero-img { font-size:80px; line-height:1; animation:float 4s ease-in-out infinite; }
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+
+  /* =============================================
+     MAIN UPLOAD + RESULT GRID
+  ============================================= */
+  .main-grid { display:grid; grid-template-columns:1fr 1.4fr; gap:20px; margin-bottom:24px; }
+  @media(max-width:900px){ .main-grid{ grid-template-columns:1fr; } }
+
+  .box { background:var(--white); border-radius:var(--radius-md); padding:22px; box-shadow:var(--shadow-sm); border:1px solid rgba(0,0,0,0.04); }
+  .box-title { font-family:'Playfair Display',serif; font-size:16px; font-weight:700; margin-bottom:4px; }
+  .box-sub   { font-size:12px; color:var(--text-light); margin-bottom:18px; }
+
+  /* =============================================
+     UPLOAD ZONE
+  ============================================= */
+  .upload-zone {
+    border:2px dashed rgba(82,183,136,0.4);
+    border-radius:var(--radius-md);
+    padding:32px 20px;
+    text-align:center;
+    cursor:pointer;
+    transition:all .3s ease;
+    background:var(--cream);
+    position:relative;
+    overflow:hidden;
+    margin-bottom:14px;
+  }
+  .upload-zone:hover { border-color:var(--green-light); background:var(--green-pale); }
+  .upload-zone.dragover { border-color:var(--green-light); background:var(--green-pale); transform:scale(1.01); }
+  /*
+    .dragover = class we add with JS when user drags a file over
+    Makes the zone glow green to show "drop here!"
+  */
+
+  .upload-icon { font-size:48px; margin-bottom:12px; display:block; }
+  .upload-text { font-size:14px; font-weight:600; color:var(--text-dark); margin-bottom:4px; }
+  .upload-sub  { font-size:12px; color:var(--text-light); }
+
+  /* Hidden file input — we trigger it programmatically */
+  #fileInput { display:none; }
+  /*
+    display:none = completely invisible
+    We use JavaScript to click it when user clicks the upload zone
+    This is a common trick because <input type="file"> is ugly by default
+  */
+
+  /* Preview image after upload */
+  .image-preview {
+    width:100%; border-radius:var(--radius-sm);
+    max-height:280px; object-fit:cover;
+    /* object-fit:cover = fill the space, crop if needed (like background-size:cover) */
+    margin-bottom:14px; display:none;
+    border:1px solid rgba(0,0,0,0.08);
+  }
+
+  /* Action buttons */
+  .btn-row { display:flex; gap:10px; }
+
+  .btn-primary {
+    flex:1; padding:12px; background:var(--green-dark); color:white;
+    border:none; border-radius:var(--radius-sm); font-size:13px; font-weight:700;
+    cursor:pointer; transition:all .2s; font-family:inherit;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .btn-primary:hover { background:var(--green-mid); transform:translateY(-1px); }
+  .btn-primary:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
+
+  .btn-secondary {
+    padding:12px 16px; background:var(--cream); color:var(--text-mid);
+    border:1px solid rgba(0,0,0,0.1); border-radius:var(--radius-sm);
+    font-size:13px; font-weight:600; cursor:pointer; transition:all .2s; font-family:inherit;
+  }
+  .btn-secondary:hover { border-color:var(--green-light); color:var(--green-mid); }
+
+  /* Sample images to try */
+  .sample-section { margin-top:16px; }
+  .sample-label { font-size:11px; color:var(--text-light); font-weight:600; text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px; }
+  .sample-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .sample-img {
+    aspect-ratio:1;
+    /* aspect-ratio:1 = always square regardless of width */
+    border-radius:var(--radius-sm); border:2px solid transparent;
+    cursor:pointer; transition:all .2s; overflow:hidden;
+    background:var(--cream); display:flex; align-items:center; justify-content:center;
+    font-size:32px; flex-direction:column; gap:4px;
+  }
+  .sample-img:hover { border-color:var(--green-light); transform:scale(1.04); }
+  .sample-img span { font-size:10px; font-weight:600; color:var(--text-mid); }
+
+  /* Camera option */
+  .camera-btn {
+    width:100%; padding:10px; background:var(--sky-pale);
+    border:1px solid var(--sky); border-radius:var(--radius-sm);
+    color:#0a4d6e; font-size:13px; font-weight:600; cursor:pointer;
+    transition:all .2s; font-family:inherit; margin-top:10px;
+    display:flex; align-items:center; justify-content:center; gap:6px;
+  }
+  .camera-btn:hover { background:var(--sky); color:white; }
+
+  /* =============================================
+     AI ANALYZING ANIMATION
+  ============================================= */
+  .analyzing-state {
+    display:none;
+    text-align:center; padding:32px 20px;
+  }
+  .analyzing-state.show { display:block; }
+
+  .analyze-spinner {
+    width:64px; height:64px; border-radius:50%;
+    border:3px solid var(--green-pale);
+    border-top-color:var(--green-light);
+    animation:spin .8s linear infinite;
+    margin:0 auto 16px;
+  }
+  @keyframes spin { to{ transform:rotate(360deg); } }
+
+  .analyze-text { font-size:15px; font-weight:600; color:var(--text-dark); margin-bottom:6px; }
+  .analyze-steps { font-size:12px; color:var(--text-light); }
+  .analyze-progress { width:100%; height:4px; background:var(--green-pale); border-radius:2px; overflow:hidden; margin-top:16px; }
+  .analyze-fill { height:100%; background:var(--green-light); border-radius:2px; width:0%; transition:width .3s ease; }
+
+  /* =============================================
+     RESULT CARD — Disease diagnosis
+  ============================================= */
+  .result-panel { display:none; }
+  .result-panel.show { display:block; }
+
+  /* Severity indicator at top */
+  .severity-bar {
+    display:flex; align-items:center; gap:12px;
+    padding:12px 16px; border-radius:var(--radius-sm);
+    margin-bottom:16px; border:1px solid rgba(0,0,0,0.06);
+  }
+  .sev-icon { font-size:24px; flex-shrink:0; }
+  .sev-text { flex:1; }
+  .sev-label { font-size:13px; font-weight:700; }
+  .sev-sub   { font-size:11px; color:var(--text-light); margin-top:1px; }
+  .sev-badge { font-size:11px; font-weight:800; padding:4px 12px; border-radius:20px; }
+  .sev-low    { background:#e8f5e9; color:#1b5e20; }
+  .sev-medium { background:#fff3e0; color:#e65100; }
+  .sev-high   { background:#ffebee; color:#b71c1c; }
+
+  /* Disease name + confidence */
+  .disease-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:12px; gap:12px; }
+  .disease-name  { font-family:'Playfair Display',serif; font-size:22px; font-weight:800; color:var(--text-dark); }
+  .disease-latin { font-size:12px; color:var(--text-light); font-style:italic; margin-top:2px; }
+  .confidence-ring { flex-shrink:0; text-align:center; }
+  .conf-num { font-family:'Playfair Display',serif; font-size:22px; font-weight:700; color:var(--green-mid); }
+  .conf-lbl { font-size:10px; color:var(--text-light); }
+
+  /* Tabs inside result */
+  .result-tabs { display:flex; border-bottom:1px solid rgba(0,0,0,0.08); margin-bottom:16px; gap:0; }
+  .r-tab { padding:10px 18px; font-size:13px; font-weight:600; cursor:pointer; color:var(--text-light); border-bottom:2px solid transparent; transition:all .2s; }
+  .r-tab:hover { color:var(--text-dark); }
+  .r-tab.active { color:var(--green-mid); border-bottom-color:var(--green-light); }
+  .r-panel { display:none; }
+  .r-panel.show { display:block; }
+
+  /* Symptoms list */
+  .symptom-list { display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
+  .symptom-item { display:flex; gap:10px; align-items:flex-start; padding:10px 12px; border-radius:var(--radius-sm); background:var(--danger-pale); }
+  .sym-dot { width:8px; height:8px; border-radius:50%; background:var(--danger); flex-shrink:0; margin-top:4px; }
+  .sym-text { font-size:13px; color:var(--text-mid); line-height:1.5; }
+
+  /* Cure steps */
+  .cure-steps { display:flex; flex-direction:column; gap:10px; }
+  .cure-step {
+    display:flex; gap:12px; align-items:flex-start;
+    padding:12px 14px; border-radius:var(--radius-sm);
+    background:var(--green-pale); border:1px solid rgba(82,183,136,0.2);
+    cursor:pointer; transition:all .2s;
+  }
+  .cure-step:hover { background:white; box-shadow:var(--shadow-sm); transform:translateX(3px); }
+  .cure-num { width:24px; height:24px; border-radius:50%; background:var(--green-light); color:var(--green-dark); font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .cure-text { font-size:13px; color:var(--text-mid); line-height:1.5; }
+  .cure-text strong { color:var(--text-dark); }
+
+  /* Medicine cards */
+  .medicine-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media(max-width:600px){ .medicine-grid{ grid-template-columns:1fr; } }
+
+  .med-card { background:var(--cream); border:1px solid rgba(0,0,0,0.07); border-radius:var(--radius-sm); padding:14px; transition:all .2s; cursor:pointer; }
+  .med-card:hover { border-color:var(--green-light); background:var(--white); box-shadow:var(--shadow-sm); }
+  .med-icon { font-size:24px; margin-bottom:6px; }
+  .med-name { font-size:13px; font-weight:700; color:var(--text-dark); margin-bottom:2px; }
+  .med-type { font-size:11px; color:var(--text-light); margin-bottom:6px; }
+  .med-dose { font-size:12px; color:var(--green-mid); font-weight:600; }
+  .med-price { font-size:11px; color:var(--text-light); margin-top:4px; }
+
+  /* Prevention tips */
+  .prev-list { display:flex; flex-direction:column; gap:8px; }
+  .prev-item { display:flex; gap:10px; font-size:13px; color:var(--text-mid); line-height:1.5; padding:8px 0; border-bottom:1px solid rgba(0,0,0,0.05); }
+  .prev-item:last-child { border-bottom:none; }
+  .prev-item::before { content:'🛡️'; flex-shrink:0; }
+
+  /* =============================================
+     SHOP LOCATOR
+  ============================================= */
+  .shop-section { margin-top:20px; }
+  .shop-title { font-family:'Playfair Display',serif; font-size:15px; font-weight:700; margin-bottom:12px; }
+
+  .shop-list { display:flex; flex-direction:column; gap:8px; }
+  .shop-card { display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:var(--radius-sm); border:1px solid rgba(0,0,0,0.06); background:var(--cream); transition:all .2s; cursor:pointer; }
+  .shop-card:hover { background:var(--green-pale); border-color:var(--green-light); transform:translateX(3px); }
+  .shop-icon { width:36px; height:36px; border-radius:50%; background:var(--green-pale); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+  .shop-info { flex:1; }
+  .shop-name { font-size:13px; font-weight:600; color:var(--text-dark); }
+  .shop-addr { font-size:11px; color:var(--text-light); margin-top:1px; }
+  .shop-dist { font-size:12px; font-weight:600; color:var(--green-mid); white-space:nowrap; }
+  .shop-open { font-size:10px; padding:2px 7px; border-radius:10px; font-weight:600; }
+  .open-yes { background:#e8f5e9; color:#2e7d32; }
+  .open-no  { background:#ffebee; color:#c62828; }
+
+  /* =============================================
+     HISTORY SECTION — past scans
+  ============================================= */
+  .history-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px; }
+
+  .history-card { background:var(--white); border:1px solid rgba(0,0,0,0.06); border-radius:var(--radius-md); overflow:hidden; cursor:pointer; transition:all .2s; }
+  .history-card:hover { transform:translateY(-3px); box-shadow:var(--shadow-md); }
+  .history-img { width:100%; height:100px; display:flex; align-items:center; justify-content:center; font-size:40px; background:var(--cream); }
+  .history-body { padding:10px 12px; }
+  .history-crop { font-size:12px; font-weight:700; color:var(--text-dark); }
+  .history-disease { font-size:11px; color:var(--danger); font-weight:600; margin-top:1px; }
+  .history-date { font-size:10px; color:var(--text-light); margin-top:4px; }
+  .history-badge { font-size:10px; padding:2px 7px; border-radius:10px; font-weight:600; margin-top:5px; display:inline-block; }
+
+  /* =============================================
+     TOAST & OVERLAY
+  ============================================= */
+  .toast { position:fixed; bottom:24px; right:24px; background:var(--green-dark); color:white; padding:12px 20px; border-radius:var(--radius-sm); font-size:13px; font-weight:500; z-index:9999; display:flex; align-items:center; gap:8px; box-shadow:var(--shadow-lg); transform:translateY(80px); opacity:0; transition:all .3s ease; max-width:320px; }
+  .toast.show { transform:translateY(0); opacity:1; }
+  .overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:90; }
+  .overlay.show { display:block; }
+
+  .fade-up { animation:fadeUp .5s ease both; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+  .d1{animation-delay:.1s} .d2{animation-delay:.2s} .d3{animation-delay:.3s} .d4{animation-delay:.4s}
+
+  .section-label { font-family:'Playfair Display',serif; font-size:18px; font-weight:700; margin-bottom:14px; color:var(--text-dark); }
+  .section-label small { font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; font-weight:400; color:var(--text-light); margin-left:8px; }
+  </style>
+</head>
+<body>
+
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+<div class="toast" id="toast"><span id="t-icon">✅</span><span id="t-msg"></span></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-title">Gram<span>Shakti</span></div>
+    <div class="logo-tag">Village Super App</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">Main</div>
+    <a class="nav-item" href="index.html">🏠 Dashboard</a>
+    <div class="nav-label">Farming</div>
+    <a class="nav-item active" href="crop.html">🌿 Crop Doctor <span class="nav-badge">AI</span></a>
+    <a class="nav-item" href="weather.html">⛅ Farm Weather</a>
+    <a class="nav-item" href="mandi.html">📊 Mandi Prices <span class="nav-badge">Live</span></a>
+    <a class="nav-item" href="#">🛒 Farm Market</a>
+    <div class="nav-label">Government</div>
+    <a class="nav-item" href="scheme.html">🏛️ Scheme Finder <span class="nav-badge">New</span></a>
+    <a class="nav-item" href="#">💳 Kisan Loans</a>
+    <div class="nav-label">Village Life</div>
+    <a class="nav-item" href="#">🏥 Health & Doctor</a>
+    <a class="nav-item" href="#">🆘 Emergency SOS</a>
+    <a class="nav-item" href="#">💼 Jobs & MNREGA</a>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="user-card">
+      <div class="user-avatar">👨‍🌾</div>
+      <div><div class="user-name">Raju Patil</div><div class="user-sub">Nandgaon Village</div></div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <button class="hamburger" onclick="openSidebar()">
+        <div class="ham-line"></div><div class="ham-line"></div><div class="ham-line"></div>
+      </button>
+      <div>
+        <div class="page-title">Crop Doctor</div>
+        <div class="page-sub">AI-powered plant disease detection</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="ai-badge"><div class="ai-dot"></div> AI Active</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- HERO -->
+    <div class="page-hero fade-up">
+      <div class="hero-inner">
+        <div class="hero-text">
+          <h1>Your <span>AI Crop Doctor</span> 🩺</h1>
+          <p>Take a photo of your sick crop leaf. Our AI instantly identifies the disease, severity, and exact cure with medicine names and dosage — in seconds.</p>
+          <div class="hero-chips">
+            <span class="h-chip">🌾 Wheat</span>
+            <span class="h-chip">🍅 Tomato</span>
+            <span class="h-chip">🧅 Onion</span>
+            <span class="h-chip">🌿 Cotton</span>
+            <span class="h-chip">🌽 Maize</span>
+            <span class="h-chip">🫘 Soybean</span>
+            <span class="h-chip">🍇 Grapes</span>
+            <span class="h-chip">+20 crops</span>
+          </div>
+        </div>
+        <div class="hero-img">🔬</div>
+      </div>
+    </div>
+
+    <!-- MAIN GRID -->
+    <div class="main-grid">
+
+      <!-- LEFT: UPLOAD -->
+      <div class="box fade-up d1">
+        <div class="box-title">📸 Upload Crop Photo</div>
+        <div class="box-sub">Take or upload a clear photo of the affected leaf</div>
+
+        <!-- Upload Zone -->
+        <div class="upload-zone" id="uploadZone"
+             onclick="document.getElementById('fileInput').click()"
+             ondragover="handleDragOver(event)"
+             ondragleave="handleDragLeave(event)"
+             ondrop="handleDrop(event)">
+          <!--
+            onclick = when user clicks the zone, trigger the hidden file input
+            ondragover = when file is dragged over the zone
+            ondragleave = when file is dragged away
+            ondrop = when file is dropped
+            These 4 events together create the drag-and-drop upload
+          -->
+          <span class="upload-icon" id="uploadIcon">📷</span>
+          <div class="upload-text" id="uploadText">Click or drag a photo here</div>
+          <div class="upload-sub" id="uploadSub">JPG, PNG, WEBP — max 10MB</div>
+        </div>
+
+        <!-- Hidden file input -->
+        <input type="file" id="fileInput" accept="image/*"
+               onchange="handleFileSelect(event)"/>
+        <!--
+          accept="image/*" = only allow image files
+          image/* = any image type (jpg, png, webp, gif, etc.)
+          onchange = fires when user picks a file
+        -->
+
+        <!-- Preview image (hidden until file selected) -->
+        <img class="image-preview" id="imagePreview" alt="Preview"/>
+
+        <!-- Buttons -->
+        <div class="btn-row" id="btnRow">
+          <button class="btn-primary" id="analyzeBtn" onclick="analyzeImage()" disabled>
+            🔬 Analyze Disease
+          </button>
+          <button class="btn-secondary" id="clearBtn" onclick="clearImage()" style="display:none">
+            🗑️ Clear
+          </button>
+        </div>
+
+        <!-- Camera button -->
+        <button class="camera-btn" onclick="openCamera()">
+          📱 Open Camera (Mobile)
+        </button>
+
+        <!-- Sample images -->
+        <div class="sample-section">
+          <div class="sample-label">Or try a sample:</div>
+          <div class="sample-grid">
+            <div class="sample-img" onclick="loadSample('tomato_blight')">
+              🍅<span>Tomato</span>
+            </div>
+            <div class="sample-img" onclick="loadSample('wheat_rust')">
+              🌾<span>Wheat</span>
+            </div>
+            <div class="sample-img" onclick="loadSample('cotton_wilt')">
+              🌿<span>Cotton</span>
+            </div>
+            <div class="sample-img" onclick="loadSample('onion_purple')">
+              🧅<span>Onion</span>
+            </div>
+            <div class="sample-img" onclick="loadSample('maize_blight')">
+              🌽<span>Maize</span>
+            </div>
+            <div class="sample-img" onclick="loadSample('grape_downy')">
+              🍇<span>Grapes</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: RESULT -->
+      <div class="box fade-up d2">
+
+        <!-- Analyzing animation -->
+        <div class="analyzing-state" id="analyzingState">
+          <div class="analyze-spinner"></div>
+          <div class="analyze-text" id="analyzeText">Scanning your crop photo...</div>
+          <div class="analyze-steps" id="analyzeSteps">Detecting leaf patterns</div>
+          <div class="analyze-progress">
+            <div class="analyze-fill" id="analyzeFill"></div>
+          </div>
+        </div>
+
+        <!-- Empty placeholder -->
+        <div id="emptyResult" style="text-align:center;padding:48px 20px;color:var(--text-light)">
+          <div style="font-size:64px;margin-bottom:16px">🌿</div>
+          <div style="font-size:15px;font-weight:600;margin-bottom:8px;color:var(--text-dark)">Upload a photo to start</div>
+          <div style="font-size:13px;line-height:1.6">Take a clear, close-up photo of the<br/>affected leaf in good lighting</div>
+        </div>
+
+        <!-- RESULT PANEL (shown after analysis) -->
+        <div class="result-panel" id="resultPanel">
+
+          <!-- Severity indicator -->
+          <div class="severity-bar" id="severityBar">
+            <div class="sev-icon" id="sevIcon">⚠️</div>
+            <div class="sev-text">
+              <div class="sev-label" id="sevLabel">Disease Detected</div>
+              <div class="sev-sub" id="sevSub">Act within 7 days</div>
+            </div>
+            <div class="sev-badge" id="sevBadge">MEDIUM</div>
+          </div>
+
+          <!-- Disease name + confidence -->
+          <div class="disease-header">
+            <div>
+              <div class="disease-name" id="diseaseName">Early Blight</div>
+              <div class="disease-latin" id="diseaseLatinName">Alternaria solani</div>
+            </div>
+            <div class="confidence-ring">
+              <div class="conf-num" id="confNum">94%</div>
+              <div class="conf-lbl">AI confidence</div>
+            </div>
+          </div>
+
+          <!-- Tabs: Symptoms | Cure | Medicine | Prevention -->
+          <div class="result-tabs">
+            <div class="r-tab active" onclick="switchTab('symptoms',this)">Symptoms</div>
+            <div class="r-tab" onclick="switchTab('cure',this)">Cure Steps</div>
+            <div class="r-tab" onclick="switchTab('medicine',this)">Medicine</div>
+            <div class="r-tab" onclick="switchTab('prevention',this)">Prevention</div>
+          </div>
+
+          <!-- SYMPTOMS TAB -->
+          <div class="r-panel show" id="tab-symptoms">
+            <div class="symptom-list" id="symptomList"></div>
+          </div>
+
+          <!-- CURE TAB -->
+          <div class="r-panel" id="tab-cure">
+            <div class="cure-steps" id="cureSteps"></div>
+          </div>
+
+          <!-- MEDICINE TAB -->
+          <div class="r-panel" id="tab-medicine">
+            <div class="medicine-grid" id="medicineGrid"></div>
+          </div>
+
+          <!-- PREVENTION TAB -->
+          <div class="r-panel" id="tab-prevention">
+            <div class="prev-list" id="prevList"></div>
+          </div>
+
+          <!-- Shop locator -->
+          <div class="shop-section">
+            <div class="shop-title">🏪 Nearest Agri Shops</div>
+            <div class="shop-list" id="shopList"></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- SCAN HISTORY -->
+    <div class="fade-up d3">
+      <div class="section-label">📋 Recent Scans <small>— your diagnosis history</small></div>
+      <div class="history-grid" id="historyGrid"></div>
+    </div>
+
+  </div>
+</main>
+
+<!-- =============================================
+     JAVASCRIPT
+============================================= -->
+<script>
+
+// ============================================================
+// SECTION 1: DISEASE DATABASE
+//
+// In a real app, this analysis happens on a SERVER
+// using a trained Machine Learning model
+// For our project, we simulate the AI with realistic data
+// The structure is exactly what a real ML API would return
+// ============================================================
+
+var DISEASE_DB = {
+  tomato_blight: {
+    crop: 'Tomato 🍅',
+    disease: 'Early Blight',
+    latinName: 'Alternaria solani',
+    confidence: 94,
+    severity: 'medium',
+    sevLabel: 'Moderate Infection',
+    sevSub: 'Act within 7 days to prevent spread',
+    sevIcon: '⚠️',
+    bgColor: '#fff3e0',
+    symptoms: [
+      'Dark brown circular spots with yellow rings on lower leaves',
+      'Spots have a bullseye or target-board pattern',
+      'Leaves turn yellow and fall off prematurely',
+      'Stems show dark brown lesions near the soil',
+      'Infected fruits show dark sunken spots near stem',
+    ],
+    cure: [
+      { step:'Remove infected leaves', detail:'Immediately remove and <strong>burn all infected leaves</strong>. Do NOT compost them — spores will spread.' },
+      { step:'Improve air circulation', detail:'<strong>Prune overcrowded branches</strong> to allow air to flow. Wet, humid conditions speed up this disease.' },
+      { step:'Apply fungicide spray', detail:'Spray <strong>Mancozeb 75% WP @ 2.5g/liter</strong> of water. Spray every 7-10 days for 3 weeks.' },
+      { step:'Drip irrigation', detail:'<strong>Avoid overhead watering</strong>. Water at the base only. Wet leaves spread the fungus rapidly.' },
+      { step:'Soil treatment', detail:'Apply <strong>Trichoderma viride @ 5kg/acre</strong> to soil to fight root infection.' },
+    ],
+    medicines: [
+      { icon:'🧴', name:'Mancozeb 75% WP', type:'Fungicide', dose:'2.5g per liter water', price:'₹180–220 per kg' },
+      { icon:'💊', name:'Copper Oxychloride', type:'Fungicide', dose:'3g per liter water', price:'₹120–160 per kg' },
+      { icon:'🌿', name:'Trichoderma viride', type:'Biological', dose:'5kg per acre soil', price:'₹80–120 per kg' },
+      { icon:'🧪', name:'Chlorothalonil', type:'Fungicide', dose:'2g per liter water', price:'₹200–260 per kg' },
+    ],
+    prevention: [
+      'Use certified disease-free seeds from registered suppliers',
+      'Maintain crop rotation — do not grow tomatoes in same field 2 years in a row',
+      'Apply mulching around plants to prevent soil splash on leaves',
+      'Spray preventive Mancozeb before rainy season starts',
+      'Choose resistant varieties: Pusa Hybrid-1, Arka Vikas',
+      'Remove plant debris and weeds after harvesting',
+    ],
+    shops: [
+      { name:'Patil Agro Centre',  addr:'Main Rd, Nandgaon', dist:'1.2 km', open:true },
+      { name:'Kisan Seva Kendra',  addr:'NH-3, Near Post Office', dist:'3.8 km', open:true },
+      { name:'Agri Input Store',   addr:'Market Yard, Nashik', dist:'12 km', open:false },
+    ],
+  },
+
+  wheat_rust: {
+    crop: 'Wheat 🌾',
+    disease: 'Yellow Rust (Stripe Rust)',
+    latinName: 'Puccinia striiformis',
+    confidence: 91,
+    severity: 'high',
+    sevLabel: 'Severe Infection — Urgent!',
+    sevSub: 'Act immediately to save crop',
+    sevIcon: '🚨',
+    bgColor: '#ffebee',
+    symptoms: [
+      'Yellow-orange stripe-like pustules running parallel on leaves',
+      'White to pale yellow streaks visible on upper leaf surface',
+      'Yellowing and drying of leaves starting from tips',
+      'Powdery yellow-orange spore mass that rubs off on fingers',
+      'Severely infected crop looks orange-yellow from a distance',
+    ],
+    cure: [
+      { step:'Spray Propiconazole immediately', detail:'Apply <strong>Tilt 25EC (Propiconazole) @ 0.1%</strong> solution at first sign. Do not delay even 1 day.' },
+      { step:'Second spray after 15 days', detail:'<strong>Repeat spray with Mancozeb 75% WP</strong> @ 2.5g/liter after 15 days for complete control.' },
+      { step:'Remove severely infected crop', detail:'If more than 40% crop is infected, <strong>consider early harvesting</strong> to prevent total loss.' },
+      { step:'Control volunteers', detail:'Destroy any volunteer wheat plants in surrounding fields as they harbor the fungus.' },
+    ],
+    medicines: [
+      { icon:'🧴', name:'Propiconazole 25EC (Tilt)', type:'Systemic Fungicide', dose:'1ml per liter water', price:'₹680–720 per liter' },
+      { icon:'💊', name:'Tebuconazole 25.9% EC', type:'Systemic Fungicide', dose:'1ml per liter water', price:'₹580–620 per liter' },
+      { icon:'🧪', name:'Mancozeb 75% WP', type:'Protective Fungicide', dose:'2.5g per liter water', price:'₹180–220 per kg' },
+      { icon:'🌿', name:'Hexaconazole 5% EC', type:'Fungicide', dose:'2ml per liter water', price:'₹340–380 per liter' },
+    ],
+    prevention: [
+      'Plant resistant varieties: HD-2781, PBW-502, WH-1105',
+      'Sow wheat on recommended dates — late sowing increases rust risk',
+      'Apply balanced fertilizer — avoid excess nitrogen',
+      'Monitor crop every 10 days during January-March',
+      'Inform neighboring farmers immediately if rust is detected',
+    ],
+    shops: [
+      { name:'Shetkari Bhandar',    addr:'Village Sq, Nandgaon', dist:'0.8 km', open:true },
+      { name:'National Agro Corp',  addr:'Highway, Igatpuri', dist:'5.2 km', open:true },
+      { name:'Kisan Agri Centre',   addr:'Market Yard, Nashik', dist:'14 km', open:true },
+    ],
+  },
+
+  cotton_wilt: {
+    crop: 'Cotton 🌿',
+    disease: 'Fusarium Wilt',
+    latinName: 'Fusarium oxysporum',
+    confidence: 87,
+    severity: 'high',
+    sevLabel: 'Critical — Soil-borne Disease',
+    sevSub: 'Treat soil immediately — spreads fast',
+    sevIcon: '🚨',
+    bgColor: '#ffebee',
+    symptoms: [
+      'Sudden wilting of leaves even when soil is moist',
+      'Brown discoloration of vascular tissue inside the stem',
+      'Yellowing of leaves starting from lower leaves upward',
+      'Brown streaks visible when stem is cut lengthwise',
+      'Plants die within 2-3 weeks of infection',
+    ],
+    cure: [
+      { step:'Drench soil with Carbendazim', detail:'Mix <strong>Carbendazim 50% WP @ 1g/liter</strong> and drench soil around roots. Repeat after 15 days.' },
+      { step:'Apply Trichoderma to soil', detail:'Broadcast <strong>Trichoderma harzianum @ 5kg/acre</strong> mixed with FYM in the root zone.' },
+      { step:'Remove infected plants', detail:'<strong>Uproot and burn infected plants immediately.</strong> Never leave them in the field.' },
+      { step:'Avoid waterlogging', detail:'Improve field drainage. <strong>Fusarium spreads rapidly in waterlogged soil.</strong>' },
+    ],
+    medicines: [
+      { icon:'🧴', name:'Carbendazim 50% WP', type:'Systemic Fungicide', dose:'1g per liter water', price:'₹180–220 per kg' },
+      { icon:'🌿', name:'Trichoderma harzianum', type:'Biological Control', dose:'5kg per acre', price:'₹80–120 per kg' },
+      { icon:'💊', name:'Thiophanate Methyl', type:'Systemic Fungicide', dose:'1g per liter water', price:'₹280–320 per kg' },
+      { icon:'🧪', name:'Captan 50% WP', type:'Protective Fungicide', dose:'2g per liter water', price:'₹160–200 per kg' },
+    ],
+    prevention: [
+      'Use Fusarium-resistant cotton varieties: Bunny BG-II, MRC-7017',
+      'Treat seeds with Trichoderma viride before sowing',
+      'Practice 3-year crop rotation — avoid cotton in infected soil',
+      'Improve soil drainage with deep ploughing',
+      'Apply lime to maintain soil pH between 6.5 to 7.5',
+    ],
+    shops: [
+      { name:'Vidarbha Agri Centre', addr:'Cotton Market, Akola',   dist:'2.1 km', open:true  },
+      { name:'Kisan Input Store',    addr:'APMC Road, Amravati',    dist:'8.4 km', open:true  },
+      { name:'Shetkari Seva Kendra', addr:'Main Bazar, Yavatmal',   dist:'18 km',  open:false },
+    ],
+  },
+
+  onion_purple: {
+    crop: 'Onion 🧅',
+    disease: 'Purple Blotch',
+    latinName: 'Alternaria porri',
+    confidence: 89,
+    severity: 'medium',
+    sevLabel: 'Moderate — Control in 14 days',
+    sevSub: 'Most common onion disease in India',
+    sevIcon: '⚠️',
+    bgColor: '#fff3e0',
+    symptoms: [
+      'Water-soaked white lesions that turn purple with yellow halo',
+      'Lesions with concentric rings visible on leaves',
+      'Affected leaves fall over (neck rot symptom)',
+      'Bulb exposed to secondary infections',
+      'Severe infection causes early leaf death and reduced bulb size',
+    ],
+    cure: [
+      { step:'Spray Mancozeb + Iprodione', detail:'Mix <strong>Mancozeb 75% WP (2g) + Iprodione 50% WP (1.5g)</strong> per liter. Spray weekly.' },
+      { step:'Reduce humidity', detail:'Avoid overhead irrigation. <strong>Use drip irrigation</strong> and improve spacing between plants.' },
+      { step:'Remove infected leaves', detail:'Remove leaves showing purple blotch. <strong>Do not compost</strong> — burn them.' },
+      { step:'Balance nutrition', detail:'Reduce nitrogen fertilizer. Apply <strong>potassium-rich fertilizer</strong> to strengthen cell walls.' },
+    ],
+    medicines: [
+      { icon:'🧴', name:'Mancozeb 75% WP', type:'Contact Fungicide', dose:'2g per liter water', price:'₹180–220 per kg' },
+      { icon:'💊', name:'Iprodione 50% WP', type:'Systemic Fungicide', dose:'1.5g per liter water', price:'₹480–520 per kg' },
+      { icon:'🧪', name:'Tebuconazole 25% EC', type:'Systemic Fungicide', dose:'1ml per liter water', price:'₹580–620 per liter' },
+      { icon:'🌿', name:'Copper Hydroxide', type:'Protective Fungicide', dose:'2g per liter water', price:'₹220–260 per kg' },
+    ],
+    prevention: [
+      'Use disease-free transplants from certified nurseries',
+      'Maintain spacing of 10cm × 15cm for good air circulation',
+      'Avoid waterlogging — onion field must have excellent drainage',
+      'Apply preventive spray before monsoon season',
+      'Choose resistant varieties: Agrifound Dark Red, Bhima Raj',
+    ],
+    shops: [
+      { name:'Lasalgaon Agri Input', addr:'APMC Road, Lasalgaon',  dist:'4.2 km', open:true  },
+      { name:'Nashik Kisan Bhandar', addr:'Gangapur Road, Nashik',  dist:'15 km',  open:true  },
+      { name:'Patil Seed House',     addr:'Market Sq, Niphad',      dist:'22 km',  open:false },
+    ],
+  },
+
+  maize_blight: {
+    crop: 'Maize 🌽',
+    disease: 'Northern Corn Leaf Blight',
+    latinName: 'Exserohilum turcicum',
+    confidence: 86,
+    severity: 'low',
+    sevLabel: 'Early Stage — Control Now',
+    sevSub: 'Easy to control if treated early',
+    sevIcon: '⚠️',
+    bgColor: '#e8f5e9',
+    symptoms: [
+      'Long cigar-shaped grayish-green lesions on leaves',
+      'Lesions are 2.5 to 15 cm long with wavy margins',
+      'Lesions turn tan to brown as disease progresses',
+      'Dark sooty fungal growth visible in humid weather',
+      'Severe infection causes premature death of leaves',
+    ],
+    cure: [
+      { step:'Spray Mancozeb at first sign', detail:'Apply <strong>Mancozeb 75% WP @ 2g/liter</strong> as soon as lesions appear. Spray every 10 days.' },
+      { step:'Remove affected leaves', detail:'Remove and destroy lower infected leaves. Improves air flow and reduces spore load.' },
+      { step:'Propiconazole for severe cases', detail:'For severe infection, switch to <strong>Propiconazole 25 EC @ 1ml/liter</strong> for systemic control.' },
+    ],
+    medicines: [
+      { icon:'🧴', name:'Mancozeb 75% WP', type:'Contact Fungicide', dose:'2g per liter water', price:'₹180–220 per kg' },
+      { icon:'💊', name:'Propiconazole 25 EC', type:'Systemic Fungicide', dose:'1ml per liter water', price:'₹680–720 per liter' },
+      { icon:'🧪', name:'Zineb 75% WP', type:'Protective Fungicide', dose:'2.5g per liter water', price:'₹140–180 per kg' },
+      { icon:'🌿', name:'Azoxystrobin', type:'Systemic Fungicide', dose:'1ml per liter water', price:'₹900–1100 per liter' },
+    ],
+    prevention: [
+      'Plant resistant hybrids: DHM-117, Vivek-9, PAC-740',
+      'Rotate maize with soybean or groundnut every year',
+      'Apply balanced NPK fertilizer — avoid excess nitrogen',
+      'Ensure good drainage to prevent leaf wetness',
+      'Spray preventive fungicide at 40 days after sowing',
+    ],
+    shops: [
+      { name:'Dhule Agri Kendra', addr:'Shirpur Rd, Dhule',     dist:'3.4 km', open:true },
+      { name:'Kisan Bhandar',     addr:'Main Market, Jalgaon',  dist:'9.2 km', open:true },
+      { name:'Agri One Shop',     addr:'APMC, Nandurbar',       dist:'20 km',  open:true },
+    ],
+  },
+
+  grape_downy: {
+    crop: 'Grapes 🍇',
+    disease: 'Downy Mildew',
+    latinName: 'Plasmopara viticola',
+    confidence: 92,
+    severity: 'high',
+    sevLabel: 'Severe — Entire vineyard at risk',
+    sevSub: 'Spreads extremely fast in humid weather',
+    sevIcon: '🚨',
+    bgColor: '#ffebee',
+    symptoms: [
+      'Yellow-green oily spots on upper surface of leaves',
+      'White cottony fungal growth on underside of leaves',
+      'Infected leaves curl downward and fall prematurely',
+      'Green berries show white growth and shrivel',
+      'Infected tendrils and shoots turn brown and die',
+    ],
+    cure: [
+      { step:'Emergency copper spray', detail:'Spray <strong>Copper Oxychloride 50% WP @ 3g/liter</strong> immediately on all vines. Cover undersides of leaves.' },
+      { step:'Metalaxyl + Mancozeb combination', detail:'Follow with <strong>Ridomil Gold (Metalaxyl + Mancozeb) @ 2.5g/liter</strong> after 5 days.' },
+      { step:'Improve air circulation', detail:'Trim excess foliage and side shoots. <strong>Downy mildew thrives in dense, humid canopy.</strong>' },
+      { step:'Avoid evening irrigation', detail:'Never irrigate in the evening. <strong>Wet leaves overnight</strong> accelerates spore germination.' },
+      { step:'Repeat spray cycle', detail:'Continue spraying every 7 days until conditions dry out. Keep records of all sprays.' },
+    ],
+    medicines: [
+      { icon:'🧴', name:'Copper Oxychloride 50%', type:'Protective Fungicide', dose:'3g per liter water', price:'₹120–160 per kg' },
+      { icon:'💊', name:'Ridomil Gold MZ', type:'Systemic Fungicide', dose:'2.5g per liter water', price:'₹1400–1600 per kg' },
+      { icon:'🧪', name:'Fosetyl Aluminium', type:'Systemic Fungicide', dose:'2g per liter water', price:'₹580–640 per kg' },
+      { icon:'🌿', name:'Dimethomorph 50%', type:'Systemic Fungicide', dose:'1g per liter water', price:'₹480–540 per kg' },
+    ],
+    prevention: [
+      'Plant resistant rootstocks: Dog Ridge, SO4',
+      'Maintain proper pruning to allow sunlight and airflow through canopy',
+      'Start preventive copper sprays before flowering',
+      'Avoid flood irrigation — use drip irrigation only',
+      'Maintain spray diary and rotate fungicide groups to prevent resistance',
+    ],
+    shops: [
+      { name:'Nashik Grape Agri',    addr:'Dindori Road, Nashik',   dist:'6.8 km', open:true  },
+      { name:'Viticulture Input',    addr:'Gangapur, Nashik',        dist:'11 km',  open:true  },
+      { name:'National Agro Depot',  addr:'APMC, Niphad',            dist:'25 km',  open:false },
+    ],
+  },
+};
+
+// ============================================================
+// SECTION 2: FILE UPLOAD HANDLING
+// ============================================================
+
+var selectedSample = null;
+/* Track which sample the user selected */
+
+function handleFileSelect(event) {
+  /*
+    event = the browser event object
+    event.target = the element that triggered the event (the input)
+    event.target.files = FileList object containing selected files
+    event.target.files[0] = the first (and only) file selected
+  */
+  var file = event.target.files[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    /*
+      file.type = MIME type of the file
+      'image/jpeg', 'image/png', 'image/webp' etc.
+      .startsWith('image/') = check if it's any kind of image
+    */
+    showToast('❌ Please select an image file (JPG, PNG, WEBP)', '❌');
+    return;
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    /*
+      file.size = file size in BYTES
+      10 * 1024 * 1024 = 10 MB in bytes
+      10MB = 10 × 1024KB × 1024B = 10,485,760 bytes
+    */
+    showToast('❌ File too large. Maximum size is 10MB', '❌');
+    return;
+  }
+
+  var reader = new FileReader();
+  /*
+    FileReader = browser API to read file contents
+    We use it to convert the file to a DATA URL
+    Data URL = a base64 string that represents the image
+    Format: "data:image/jpeg;base64,/9j/4AAQSkZJ..."
+    We can use this as the src of an <img> tag!
+  */
+
+  reader.onload = function(e) {
+    /*
+      reader.onload = function to run when reading is COMPLETE
+      e.target.result = the data URL of the image
+    */
+    showImagePreview(e.target.result);
+    selectedSample = null;
+  };
+
+  reader.readAsDataURL(file);
+  /* Start reading the file as a Data URL (base64 encoded) */
+}
+
+function showImagePreview(src) {
+  var preview = document.getElementById('imagePreview');
+  var zone    = document.getElementById('uploadZone');
+
+  preview.src = src;
+  /* Set the image source to our data URL or sample emoji */
+
+  preview.style.display = 'block';
+  zone.style.display    = 'none';
+  /* Hide the upload zone, show the preview */
+
+  document.getElementById('analyzeBtn').disabled = false;
+  /* Enable the Analyze button now that we have an image */
+
+  document.getElementById('clearBtn').style.display = 'block';
+  /* Show the Clear button */
+}
+
+function clearImage() {
+  document.getElementById('imagePreview').style.display = 'none';
+  document.getElementById('uploadZone').style.display   = 'block';
+  document.getElementById('analyzeBtn').disabled        = true;
+  document.getElementById('clearBtn').style.display     = 'none';
+  document.getElementById('fileInput').value            = '';
+  /* Reset the file input so same file can be selected again */
+
+  document.getElementById('resultPanel').classList.remove('show');
+  document.getElementById('emptyResult').style.display = 'block';
+  document.getElementById('analyzingState').classList.remove('show');
+
+  selectedSample = null;
+}
+
+// ============================================================
+// SECTION 3: DRAG AND DROP
+// ============================================================
+
+function handleDragOver(event) {
+  event.preventDefault();
+  /*
+    event.preventDefault() = prevent the browser's default behavior
+    Default = browser opens the file in a new tab
+    We prevent this so we can handle the drop ourselves
+  */
+  document.getElementById('uploadZone').classList.add('dragover');
+  /* Add visual feedback — zone turns green */
+}
+
+function handleDragLeave(event) {
+  document.getElementById('uploadZone').classList.remove('dragover');
+}
+
+function handleDrop(event) {
+  event.preventDefault();
+  document.getElementById('uploadZone').classList.remove('dragover');
+
+  var files = event.dataTransfer.files;
+  /*
+    event.dataTransfer = the data being dragged
+    event.dataTransfer.files = FileList of dropped files
+  */
+
+  if (files.length > 0) {
+    var fakeEvent = { target: { files: files } };
+    /*
+      We create a fake event object
+      This lets us reuse handleFileSelect() without duplicating code
+      { target: { files: files } } = same shape as the real event
+    */
+    handleFileSelect(fakeEvent);
+  }
+}
+
+// ============================================================
+// SECTION 4: SAMPLE IMAGE LOADING
+// ============================================================
+
+function loadSample(sampleKey) {
+  selectedSample = sampleKey;
+
+  var sampleEmojis = {
+    tomato_blight: '🍅', wheat_rust: '🌾', cotton_wilt: '🌿',
+    onion_purple: '🧅', maize_blight: '🌽', grape_downy: '🍇',
+  };
+
+  /* Show a large emoji as "preview" (real app would show actual photo) */
+  var zone    = document.getElementById('uploadZone');
+  var preview = document.getElementById('imagePreview');
+
+  zone.style.display    = 'none';
+  preview.style.display = 'none';
+
+  /* Create emoji preview */
+  var existingEmojiPreview = document.getElementById('emojiPreview');
+  if (existingEmojiPreview) existingEmojiPreview.remove();
+
+  var emojiDiv = document.createElement('div');
+  /*
+    document.createElement('div') = create a new <div> element in memory
+    We then set its properties and add it to the page
+  */
+  emojiDiv.id = 'emojiPreview';
+  emojiDiv.style.cssText = 'font-size:80px;text-align:center;padding:32px;border-radius:14px;background:var(--green-pale);margin-bottom:14px;animation:fadeUp .3s ease';
+  emojiDiv.textContent = sampleEmojis[sampleKey] || '🌿';
+  zone.parentNode.insertBefore(emojiDiv, zone);
+  /*
+    .insertBefore(newEl, referenceEl) = insert newEl before referenceEl
+    zone.parentNode = the parent element of the upload zone
+    This inserts our emoji div before the upload zone
+  */
+
+  document.getElementById('analyzeBtn').disabled      = false;
+  document.getElementById('clearBtn').style.display   = 'block';
+
+  showToast('✅ Sample loaded! Click "Analyze Disease" to scan.', sampleEmojis[sampleKey]);
+}
+
+// ============================================================
+// SECTION 5: OPEN CAMERA (Mobile)
+// ============================================================
+
+function openCamera() {
+  var input = document.getElementById('fileInput');
+  input.setAttribute('capture', 'environment');
+  /*
+    capture="environment" = open REAR camera on mobile
+    capture="user" = open FRONT camera
+    Without capture = shows file picker
+    
+    This attribute tells the browser to open the camera directly
+    Only works on mobile browsers
+  */
+  input.click();
+}
+
+// ============================================================
+// SECTION 6: THE MAIN AI ANALYSIS FUNCTION
+//
+// In a REAL production app, this would:
+// 1. Send the image to a server (using fetch + FormData)
+// 2. Server runs a TensorFlow/PyTorch ML model
+// 3. Returns disease name + confidence score
+//
+// Our version: simulates the same experience with real disease data
+// The UI, result format, and data are 100% production-ready
+// Just swap analyzeMock() with a real fetch() call!
+// ============================================================
+
+function analyzeImage() {
+  var btn = document.getElementById('analyzeBtn');
+  btn.disabled = true;
+
+  /* Show analyzing animation */
+  document.getElementById('emptyResult').style.display  = 'none';
+  document.getElementById('resultPanel').classList.remove('show');
+  document.getElementById('analyzingState').classList.add('show');
+
+  /* Animated analysis steps — makes it feel like real AI */
+  var steps = [
+    { text:'Scanning your crop photo...', sub:'Loading image data', progress:15 },
+    { text:'Detecting leaf patterns...', sub:'Analyzing color and texture', progress:35 },
+    { text:'Comparing with 50,000 samples...', sub:'Matching disease signatures', progress:60 },
+    { text:'Calculating disease severity...', sub:'Measuring infection spread', progress:80 },
+    { text:'Preparing cure recommendations...', sub:'Fetching medicine database', progress:95 },
+  ];
+
+  var stepIndex = 0;
+
+  var stepTimer = setInterval(function() {
+    if (stepIndex < steps.length) {
+      var s = steps[stepIndex];
+      document.getElementById('analyzeText').textContent  = s.text;
+      document.getElementById('analyzeSteps').textContent = s.sub;
+      document.getElementById('analyzeFill').style.width  = s.progress + '%';
+      stepIndex++;
+    }
+  }, 500);
+  /* Update the message every 500ms */
+
+  setTimeout(function() {
+    clearInterval(stepTimer);
+    /* Stop the step animation timer */
+
+    /* Decide which disease to show */
+    var diseaseKey = selectedSample || getRandomDisease();
+    /*
+      If user picked a sample, show that disease
+      Otherwise pick a random one (simulates real AI picking)
+    */
+
+    var result = DISEASE_DB[diseaseKey];
+
+    /* Hide analyzing, show result */
+    document.getElementById('analyzingState').classList.remove('show');
+    renderResult(result);
+
+    /* Add to history */
+    addToHistory(result, diseaseKey);
+
+    /* Re-enable button */
+    btn.disabled = false;
+    showToast('🔬 Analysis complete! ' + result.disease + ' detected.', '🌿');
+
+  }, 3000); /* Simulate 3 seconds of "AI processing" */
+}
+
+function getRandomDisease() {
+  var keys = Object.keys(DISEASE_DB);
+  /* Object.keys() = get all keys as an array */
+  return keys[Math.floor(Math.random() * keys.length)];
+  /* Pick a random index */
+}
+
+// ============================================================
+// SECTION 7: RENDER RESULT
+// ============================================================
+
+function renderResult(data) {
+  /* Set severity bar */
+  var sevColors = { low: '#e8f5e9', medium: '#fff3e0', high: '#ffebee' };
+  var sevBadgeClass = { low:'sev-low', medium:'sev-medium', high:'sev-high' };
+  var sevBadgeText = { low:'LOW', medium:'MEDIUM', high:'HIGH' };
+
+  document.getElementById('severityBar').style.background = sevColors[data.severity];
+  document.getElementById('sevIcon').textContent  = data.sevIcon;
+  document.getElementById('sevLabel').textContent = data.sevLabel;
+  document.getElementById('sevSub').textContent   = data.sevSub;
+
+  var badge = document.getElementById('sevBadge');
+  badge.className  = 'sev-badge ' + sevBadgeClass[data.severity];
+  badge.textContent = sevBadgeText[data.severity];
+
+  /* Disease name + confidence */
+  document.getElementById('diseaseName').textContent     = data.disease;
+  document.getElementById('diseaseLatinName').textContent = data.latinName;
+  document.getElementById('confNum').textContent         = data.confidence + '%';
+
+  /* Reset to first tab */
+  switchTab('symptoms', document.querySelector('.r-tab'));
+
+  /* Symptoms */
+  document.getElementById('symptomList').innerHTML = data.symptoms.map(function(s) {
+    return '<div class="symptom-item"><div class="sym-dot"></div><div class="sym-text">' + s + '</div></div>';
+  }).join('');
+
+  /* Cure steps */
+  document.getElementById('cureSteps').innerHTML = data.cure.map(function(c, i) {
+    return `
+      <div class="cure-step" onclick="showToast('Step ${i+1}: ${c.step}','✅')">
+        <div class="cure-num">${i+1}</div>
+        <div class="cure-text"><strong>${c.step}:</strong> ${c.detail}</div>
+      </div>
+    `;
+  }).join('');
+
+  /* Medicines */
+  document.getElementById('medicineGrid').innerHTML = data.medicines.map(function(m) {
+    return `
+      <div class="med-card" onclick="showToast('${m.icon} ${m.name}: ${m.dose}','${m.icon}')">
+        <div class="med-icon">${m.icon}</div>
+        <div class="med-name">${m.name}</div>
+        <div class="med-type">${m.type}</div>
+        <div class="med-dose">Dose: ${m.dose}</div>
+        <div class="med-price">${m.price}</div>
+      </div>
+    `;
+  }).join('');
+
+  /* Prevention */
+  document.getElementById('prevList').innerHTML = data.prevention.map(function(p) {
+    return '<div class="prev-item">' + p + '</div>';
+  }).join('');
+
+  /* Shops */
+  document.getElementById('shopList').innerHTML = data.shops.map(function(s) {
+    return `
+      <div class="shop-card" onclick="showToast('🗺️ Navigating to ${s.name}...','🗺️')">
+        <div class="shop-icon">🏪</div>
+        <div class="shop-info">
+          <div class="shop-name">${s.name}</div>
+          <div class="shop-addr">📍 ${s.addr}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="shop-dist">${s.dist}</div>
+          <span class="shop-open ${s.open ? 'open-yes' : 'open-no'}">${s.open ? 'Open' : 'Closed'}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  /* Show the result panel */
+  document.getElementById('resultPanel').classList.add('show');
+}
+
+// ============================================================
+// SECTION 8: TAB SWITCHING
+// ============================================================
+
+function switchTab(tabName, clickedTab) {
+  /* Hide all panels */
+  document.querySelectorAll('.r-panel').forEach(function(p) {
+    p.classList.remove('show');
+  });
+
+  /* Remove active from all tabs */
+  document.querySelectorAll('.r-tab').forEach(function(t) {
+    t.classList.remove('active');
+  });
+
+  /* Show selected panel */
+  document.getElementById('tab-' + tabName).classList.add('show');
+
+  /* Activate clicked tab */
+  if (clickedTab) clickedTab.classList.add('active');
+}
+
+// ============================================================
+// SECTION 9: SCAN HISTORY
+// ============================================================
+
+var scanHistory = [
+  /* Pre-filled history items */
+  { key:'wheat_rust',    date:'Yesterday, 2:30 PM',   crop:'Wheat 🌾',   disease:'Yellow Rust',   severity:'high',   emoji:'🌾' },
+  { key:'onion_purple',  date:'2 days ago, 10:15 AM', crop:'Onion 🧅',   disease:'Purple Blotch', severity:'medium', emoji:'🧅' },
+  { key:'maize_blight',  date:'5 days ago, 4:00 PM',  crop:'Maize 🌽',   disease:'Leaf Blight',   severity:'low',    emoji:'🌽' },
+];
+
+function renderHistory() {
+  var sevColors = { low:'#e8f5e9', medium:'#fff3e0', high:'#ffebee' };
+  var sevTextColors = { low:'#2e7d32', medium:'#e65100', high:'#c62828' };
+  var sevLabels = { low:'Low Risk', medium:'Moderate', high:'Urgent' };
+
+  document.getElementById('historyGrid').innerHTML = scanHistory.map(function(h) {
+    return `
+      <div class="history-card" onclick="showHistoryResult('${h.key}')">
+        <div class="history-img">${h.emoji}</div>
+        <div class="history-body">
+          <div class="history-crop">${h.crop}</div>
+          <div class="history-disease">${h.disease}</div>
+          <div class="history-date">📅 ${h.date}</div>
+          <span class="history-badge" style="background:${sevColors[h.severity]};color:${sevTextColors[h.severity]}">
+            ${sevLabels[h.severity]}
+          </span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function addToHistory(result, key) {
+  var newEntry = {
+    key:      key,
+    date:     'Just now',
+    crop:     result.crop,
+    disease:  result.disease,
+    severity: result.severity,
+    emoji:    result.crop.split(' ')[1] || '🌿',
+  };
+
+  /* Add to beginning of history array */
+  scanHistory.unshift(newEntry);
+  /* .unshift() = add to the BEGINNING of array (opposite of push) */
+
+  /* Keep only last 6 entries */
+  if (scanHistory.length > 6) {
+    scanHistory = scanHistory.slice(0, 6);
+    /*
+      .slice(start, end) = returns a portion of the array
+      slice(0, 6) = first 6 items (index 0 to 5)
+      Does NOT modify original — returns new array
+    */
+  }
+
+  renderHistory();
+}
+
+function showHistoryResult(key) {
+  var result = DISEASE_DB[key];
+  if (!result) return;
+
+  /* Load the sample and show result */
+  selectedSample = key;
+  loadSample(key);
+  renderResult(result);
+  document.getElementById('emptyResult').style.display = 'none';
+
+  /* Scroll to top of main content */
+  document.querySelector('.main').scrollTo({ top: 0, behavior: 'smooth' });
+  /*
+    .scrollTo({ top: 0, behavior: 'smooth' }) = 
+    Smoothly scroll to top of the element
+  */
+}
+
+// ============================================================
+// SECTION 10: UTILITIES
+// ============================================================
+
+function openSidebar()  {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('overlay').classList.add('show');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+var toastTimer = null;
+function showToast(msg, icon) {
+  var t = document.getElementById('toast');
+  document.getElementById('t-msg').textContent  = msg;
+  document.getElementById('t-icon').textContent = icon || '✅';
+  t.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(function() { t.classList.remove('show'); }, 3500);
+}
+
+// ============================================================
+// SECTION 11: INITIALIZE
+// ============================================================
+
+window.addEventListener('load', function() {
+  renderHistory();
+  showToast('🌿 Crop Doctor ready! Upload a photo or try a sample.', '🔬');
+});
+
+</script>
+</body>
+</html>

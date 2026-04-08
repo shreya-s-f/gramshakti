@@ -1,0 +1,1483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Scheme Finder — GramShakti</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+
+  <!--
+    FIREBASE — Free Google Database
+    We load 2 Firebase modules:
+    1. firebase-app    = core Firebase setup
+    2. firebase-auth   = user login system
+    3. firebase-firestore = the actual database
+
+    These are loaded as "compat" versions — older style but easier to learn
+    In interviews: "I used Firebase Firestore, a NoSQL real-time cloud database"
+  -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+  <style>
+  /* =============================================
+     CSS VARIABLES
+  ============================================= */
+  :root {
+    --green-dark:  #1a3c2e;
+    --green-mid:   #2d6a4f;
+    --green-light: #52b788;
+    --green-pale:  #d8f3dc;
+    --gold:        #f4a261;
+    --gold-pale:   #fff3e0;
+    --cream:       #fefae0;
+    --white:       #ffffff;
+    --text-dark:   #1b1b1b;
+    --text-mid:    #4a4a4a;
+    --text-light:  #888888;
+    --danger:      #e63946;
+    --purple:      #7b2d8b;
+    --purple-pale: #f3e8ff;
+    --sidebar-w:   260px;
+    --radius-sm:   8px;
+    --radius-md:   14px;
+    --radius-lg:   20px;
+    --shadow-sm:   0 2px 8px rgba(0,0,0,0.07);
+    --shadow-md:   0 4px 20px rgba(0,0,0,0.12);
+    --shadow-lg:   0 8px 32px rgba(0,0,0,0.16);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family:'Plus Jakarta Sans',sans-serif;
+    background:var(--cream); color:var(--text-dark);
+    min-height:100vh; display:flex;
+  }
+
+  /* =============================================
+     SIDEBAR
+  ============================================= */
+  .sidebar {
+    width:var(--sidebar-w); min-height:100vh;
+    background:var(--green-dark);
+    display:flex; flex-direction:column;
+    position:fixed; top:0; left:0; z-index:100;
+    transition:transform 0.3s ease;
+  }
+  @media(max-width:768px){ .sidebar{ transform:translateX(-100%); } .sidebar.open{ transform:translateX(0); } }
+
+  .sidebar-logo { padding:28px 24px 20px; border-bottom:1px solid rgba(255,255,255,0.1); }
+  .logo-title { font-family:'Playfair Display',serif; font-size:22px; font-weight:800; color:var(--white); }
+  .logo-title span { color:var(--green-light); }
+  .logo-tag { font-size:11px; color:rgba(255,255,255,0.4); margin-top:3px; letter-spacing:.1em; text-transform:uppercase; }
+
+  .sidebar-nav { flex:1; padding:16px 12px; overflow-y:auto; }
+  .nav-label { font-size:10px; color:rgba(255,255,255,0.3); text-transform:uppercase; letter-spacing:.12em; padding:12px 12px 6px; }
+  .nav-item {
+    display:flex; align-items:center; gap:12px;
+    padding:11px 14px; border-radius:var(--radius-sm);
+    color:rgba(255,255,255,0.65); cursor:pointer;
+    transition:all 0.2s; margin-bottom:2px;
+    font-size:13.5px; font-weight:500; text-decoration:none;
+  }
+  .nav-item:hover { background:rgba(255,255,255,0.08); color:var(--white); transform:translateX(4px); }
+  .nav-item.active { background:var(--green-light); color:var(--green-dark); font-weight:600; }
+  .nav-badge { margin-left:auto; background:var(--gold); color:var(--green-dark); font-size:10px; font-weight:700; padding:2px 7px; border-radius:20px; }
+
+  .sidebar-bottom { padding:16px; border-top:1px solid rgba(255,255,255,0.1); }
+  .user-card { display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.07); padding:10px 12px; border-radius:var(--radius-sm); }
+  .user-avatar { width:36px; height:36px; border-radius:50%; background:var(--green-light); display:flex; align-items:center; justify-content:center; font-size:16px; }
+  .user-name { font-size:13px; font-weight:600; color:var(--white); }
+  .user-sub  { font-size:11px; color:rgba(255,255,255,0.4); }
+
+  /* =============================================
+     MAIN LAYOUT
+  ============================================= */
+  .main { flex:1; margin-left:var(--sidebar-w); display:flex; flex-direction:column; min-height:100vh; }
+  @media(max-width:768px){ .main{ margin-left:0; } }
+
+  .topbar {
+    background:var(--white); padding:0 28px; height:68px;
+    display:flex; align-items:center; justify-content:space-between;
+    border-bottom:1px solid rgba(0,0,0,0.06);
+    box-shadow:var(--shadow-sm); position:sticky; top:0; z-index:50; gap:16px;
+  }
+  .topbar-left { display:flex; align-items:center; gap:14px; }
+  .hamburger { display:none; flex-direction:column; gap:5px; cursor:pointer; padding:4px; background:none; border:none; }
+  @media(max-width:768px){ .hamburger{ display:flex; } }
+  .ham-line { width:22px; height:2px; background:var(--text-dark); border-radius:2px; }
+  .page-title { font-family:'Playfair Display',serif; font-size:20px; font-weight:700; }
+  .page-sub   { font-size:12px; color:var(--text-light); margin-top:1px; }
+  .topbar-right { display:flex; align-items:center; gap:10px; }
+
+  .firebase-badge {
+    display:flex; align-items:center; gap:6px;
+    background:#fff3e0; color:#e65100;
+    padding:6px 14px; border-radius:20px;
+    font-size:12px; font-weight:600;
+  }
+
+  .content { flex:1; padding:28px; }
+  @media(max-width:768px){ .content{ padding:16px; } }
+
+  /* =============================================
+     PAGE HERO BANNER
+  ============================================= */
+  .page-hero {
+    background:linear-gradient(135deg, var(--green-dark), var(--green-mid));
+    border-radius:var(--radius-lg); padding:32px 36px;
+    margin-bottom:24px; color:white; position:relative; overflow:hidden;
+  }
+  .page-hero::before {
+    content:''; position:absolute;
+    width:300px; height:300px; border-radius:50%;
+    background:rgba(255,255,255,0.04);
+    top:-100px; right:-60px;
+  }
+  .hero-inner { position:relative; z-index:1; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:20px; }
+  .hero-text h1 { font-family:'Playfair Display',serif; font-size:26px; font-weight:800; margin-bottom:8px; }
+  .hero-text h1 span { color:var(--green-light); }
+  .hero-text p { font-size:13px; color:rgba(255,255,255,0.7); max-width:460px; line-height:1.6; }
+  .hero-stats { display:flex; gap:20px; margin-top:16px; flex-wrap:wrap; }
+  .h-stat { text-align:center; }
+  .h-stat-num { font-family:'Playfair Display',serif; font-size:28px; font-weight:700; color:var(--green-light); }
+  .h-stat-lbl { font-size:11px; color:rgba(255,255,255,0.55); }
+  .hero-emoji { font-size:80px; line-height:1; }
+
+  /* =============================================
+     PROFILE FORM SECTION
+  ============================================= */
+  .two-col { display:grid; grid-template-columns:1fr 1.6fr; gap:20px; margin-bottom:24px; }
+  @media(max-width:900px){ .two-col{ grid-template-columns:1fr; } }
+
+  .box {
+    background:var(--white); border-radius:var(--radius-md);
+    padding:22px; box-shadow:var(--shadow-sm);
+    border:1px solid rgba(0,0,0,0.04);
+  }
+
+  .box-title {
+    font-family:'Playfair Display',serif; font-size:16px; font-weight:700;
+    color:var(--text-dark); margin-bottom:4px;
+  }
+  .box-sub { font-size:12px; color:var(--text-light); margin-bottom:18px; }
+
+  /* =============================================
+     FORM ELEMENTS
+  ============================================= */
+  .form-group { margin-bottom:14px; }
+
+  .form-label {
+    display:block; font-size:12px; font-weight:600;
+    color:var(--text-mid); margin-bottom:5px;
+    text-transform:uppercase; letter-spacing:.05em;
+  }
+
+  .form-input, .form-select {
+    /*
+      Styling both inputs and selects the same way
+      We use a comma to select multiple elements at once
+    */
+    width:100%; padding:10px 14px;
+    border:1px solid rgba(0,0,0,0.1); border-radius:var(--radius-sm);
+    font-family:'Plus Jakarta Sans',sans-serif; font-size:13px;
+    color:var(--text-dark); background:var(--cream);
+    outline:none; transition:all .2s; appearance:none;
+    /*
+      appearance:none = remove browser's default styling for select boxes
+      Lets us style them consistently across all browsers
+    */
+  }
+
+  .form-input:focus, .form-select:focus {
+    border-color:var(--green-light);
+    box-shadow:0 0 0 3px rgba(82,183,136,0.12);
+    background:var(--white);
+  }
+
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media(max-width:500px){ .form-row{ grid-template-columns:1fr; } }
+
+  /* SELECT with custom dropdown arrow */
+  .select-wrap { position:relative; }
+  .select-wrap::after {
+    content:'▾';
+    /*
+      ::after = fake element AFTER the select
+      We use this to add a custom dropdown arrow
+    */
+    position:absolute; right:12px; top:50%;
+    transform:translateY(-50%);
+    pointer-events:none;
+    /* pointer-events:none = clicks pass through to the select */
+    font-size:12px; color:var(--text-light);
+  }
+
+  /* CHECKBOX GROUPS */
+  .check-group { display:flex; flex-direction:column; gap:8px; margin-top:4px; }
+  .check-item  { display:flex; align-items:center; gap:8px; cursor:pointer; }
+  .check-item input[type="checkbox"] {
+    width:16px; height:16px; accent-color:var(--green-light);
+    /*
+      accent-color = color of checkboxes, radio buttons, range sliders
+      One line to style the checkbox color — very simple!
+    */
+    cursor:pointer;
+  }
+  .check-label { font-size:13px; color:var(--text-mid); }
+
+  /* RANGE SLIDER */
+  .range-wrap { display:flex; align-items:center; gap:12px; }
+  .range-input { flex:1; accent-color:var(--green-light); cursor:pointer; }
+  .range-val {
+    font-family:'Playfair Display',serif; font-size:18px; font-weight:700;
+    color:var(--green-mid); min-width:60px; text-align:right;
+  }
+
+  /* SUBMIT BUTTON */
+  .find-btn {
+    width:100%; padding:14px;
+    background:var(--green-dark); color:white;
+    border:none; border-radius:var(--radius-sm);
+    font-family:'Plus Jakarta Sans',sans-serif;
+    font-size:14px; font-weight:700; cursor:pointer;
+    transition:all .2s; margin-top:6px;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .find-btn:hover { background:var(--green-mid); transform:translateY(-2px); box-shadow:var(--shadow-md); }
+  .find-btn:active { transform:translateY(0); }
+
+  /* SAVED PROFILE INDICATOR */
+  .saved-badge {
+    display:inline-flex; align-items:center; gap:5px;
+    font-size:11px; font-weight:600; padding:4px 10px;
+    border-radius:20px; background:var(--green-pale);
+    color:var(--green-mid); margin-bottom:14px;
+  }
+
+  /* =============================================
+     RESULTS PANEL (right column)
+  ============================================= */
+  .results-header {
+    display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;
+  }
+
+  .results-count {
+    font-size:13px; font-weight:600;
+    background:var(--green-pale); color:var(--green-mid);
+    padding:5px 14px; border-radius:20px;
+  }
+
+  /* Filter pills for scheme categories */
+  .scheme-filters { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .sf-pill {
+    padding:6px 14px; border-radius:20px;
+    border:1px solid rgba(0,0,0,0.08); background:var(--cream);
+    font-size:12px; font-weight:600; cursor:pointer;
+    transition:all .2s; color:var(--text-mid); font-family:inherit;
+  }
+  .sf-pill:hover { border-color:var(--green-light); color:var(--green-mid); }
+  .sf-pill.active { background:var(--green-dark); color:white; border-color:transparent; }
+
+  /* Schemes scrollable list */
+  .schemes-list {
+    display:flex; flex-direction:column; gap:12px;
+    max-height:600px; overflow-y:auto; padding-right:4px;
+  }
+  .schemes-list::-webkit-scrollbar { width:4px; }
+  .schemes-list::-webkit-scrollbar-thumb { background:var(--green-light); border-radius:2px; }
+
+  /* SCHEME CARD */
+  .scheme-card {
+    background:var(--cream); border:1px solid rgba(0,0,0,0.06);
+    border-radius:var(--radius-md); padding:18px;
+    transition:all .25s; cursor:pointer; position:relative; overflow:hidden;
+  }
+  .scheme-card:hover { transform:translateY(-2px); box-shadow:var(--shadow-md); border-color:var(--green-light); background:var(--white); }
+  .scheme-card.featured { border-color:var(--gold); border-width:1.5px; }
+  .scheme-card.featured::before {
+    content:'⭐ Most Popular';
+    position:absolute; top:0; right:0;
+    background:var(--gold); color:var(--green-dark);
+    font-size:9px; font-weight:800; padding:4px 12px;
+    border-bottom-left-radius:var(--radius-sm);
+  }
+
+  .sc-top { display:flex; align-items:flex-start; gap:12px; margin-bottom:10px; }
+  .sc-icon { font-size:32px; flex-shrink:0; }
+  .sc-info { flex:1; }
+  .sc-name { font-size:14px; font-weight:700; color:var(--text-dark); margin-bottom:3px; }
+  .sc-ministry { font-size:11px; color:var(--text-light); }
+
+  .sc-tags { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+  .sc-tag {
+    font-size:10px; font-weight:700; padding:3px 9px; border-radius:20px;
+    letter-spacing:.03em;
+  }
+  .tag-central  { background:#e8f5e9; color:#1b5e20; }
+  .tag-state    { background:#e3f8ff; color:#0a4d6e; }
+  .tag-income   { background:#fff3e0; color:#e65100; }
+  .tag-women    { background:#fce4ec; color:#880e4f; }
+  .tag-youth    { background:#ede7f6; color:#4527a0; }
+  .tag-land     { background:#e8f5e9; color:#2e7d32; }
+  .tag-credit   { background:#fff8e1; color:#f57f17; }
+  .tag-subsidy  { background:#e0f7fa; color:#006064; }
+  .tag-insurance{ background:#fbe9e7; color:#bf360c; }
+
+  .sc-benefit {
+    font-family:'Playfair Display',serif;
+    font-size:20px; font-weight:700; color:var(--green-mid);
+    margin-bottom:6px;
+  }
+
+  .sc-desc { font-size:12px; color:var(--text-mid); line-height:1.55; margin-bottom:12px; }
+
+  .sc-eligibility {
+    background:var(--white); border-radius:var(--radius-sm);
+    padding:10px 12px; margin-bottom:12px;
+    border:1px solid rgba(0,0,0,0.06);
+  }
+  .sc-elig-title { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text-light); margin-bottom:6px; }
+  .sc-elig-list  { display:flex; flex-direction:column; gap:3px; }
+  .sc-elig-item  { font-size:12px; color:var(--text-mid); display:flex; gap:6px; }
+  .sc-elig-item::before { content:'✓'; color:var(--green-light); font-weight:700; flex-shrink:0; }
+
+  .sc-footer { display:flex; align-items:center; gap:10px; }
+  .sc-apply-btn {
+    flex:1; padding:9px; background:var(--green-dark); color:white;
+    border:none; border-radius:var(--radius-sm);
+    font-size:12px; font-weight:700; cursor:pointer;
+    transition:all .2s; font-family:inherit;
+    display:flex; align-items:center; justify-content:center; gap:5px;
+  }
+  .sc-apply-btn:hover { background:var(--green-mid); }
+  .sc-deadline {
+    font-size:11px; color:var(--text-light);
+    display:flex; align-items:center; gap:4px;
+  }
+  .sc-deadline.urgent { color:var(--danger); font-weight:600; }
+
+  /* EMPTY STATE */
+  .empty-state {
+    text-align:center; padding:40px 20px;
+    color:var(--text-light); font-size:14px;
+  }
+  .empty-icon { font-size:48px; margin-bottom:12px; display:block; }
+
+  /* FIREBASE STATUS INDICATOR */
+  .db-status {
+    display:flex; align-items:center; gap:6px;
+    font-size:11px; padding:6px 12px; border-radius:20px;
+    font-weight:600; margin-bottom:14px;
+  }
+  .db-status.connected    { background:#e8f5e9; color:#2e7d32; }
+  .db-status.demo-mode    { background:#fff3e0; color:#e65100; }
+  .db-status-dot { width:7px; height:7px; border-radius:50%; background:currentColor; }
+
+  /* =============================================
+     BOTTOM SECTION: Stats + Saved Profile
+  ============================================= */
+  .bottom-row { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  @media(max-width:900px){ .bottom-row{ grid-template-columns:1fr; } }
+
+  .stat-mini { text-align:center; padding:20px; }
+  .sm-num { font-family:'Playfair Display',serif; font-size:32px; font-weight:700; color:var(--text-dark); }
+  .sm-lbl { font-size:12px; color:var(--text-light); margin-top:4px; }
+  .sm-icon{ font-size:24px; margin-bottom:8px; display:block; }
+
+  /* =============================================
+     MODAL — Scheme Detail Popup
+  ============================================= */
+  .modal-overlay {
+    /*
+      position:fixed = covers entire screen
+      inset:0 = top:0, right:0, bottom:0, left:0
+      display:flex = center the modal card
+    */
+    position:fixed; inset:0; z-index:999;
+    background:rgba(0,0,0,0.6); backdrop-filter:blur(4px);
+    display:flex; align-items:center; justify-content:center;
+    padding:20px;
+    opacity:0; pointer-events:none;
+    transition:opacity .3s;
+  }
+  .modal-overlay.show { opacity:1; pointer-events:all; }
+
+  .modal {
+    background:var(--white); border-radius:var(--radius-lg);
+    padding:28px; max-width:520px; width:100%;
+    max-height:85vh; overflow-y:auto;
+    transform:scale(0.92); transition:transform .3s;
+    position:relative;
+  }
+  .modal-overlay.show .modal { transform:scale(1); }
+
+  .modal-close {
+    position:absolute; top:16px; right:16px;
+    background:var(--cream); border:1px solid rgba(0,0,0,0.08);
+    width:32px; height:32px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px; cursor:pointer; transition:all .2s;
+  }
+  .modal-close:hover { background:var(--danger); color:white; border-color:transparent; }
+
+  .modal-icon  { font-size:48px; text-align:center; margin-bottom:12px; }
+  .modal-title { font-family:'Playfair Display',serif; font-size:20px; font-weight:700; text-align:center; margin-bottom:4px; }
+  .modal-min   { font-size:12px; color:var(--text-light); text-align:center; margin-bottom:16px; }
+  .modal-benefit { font-family:'Playfair Display',serif; font-size:28px; font-weight:700; color:var(--green-mid); text-align:center; margin-bottom:16px; padding:16px; background:var(--green-pale); border-radius:var(--radius-sm); }
+  .modal-section { margin-bottom:14px; }
+  .modal-section-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text-light); margin-bottom:8px; }
+  .modal-section p { font-size:13px; color:var(--text-mid); line-height:1.6; }
+  .modal-docs { display:flex; flex-direction:column; gap:6px; }
+  .modal-doc { display:flex; gap:8px; font-size:13px; color:var(--text-mid); }
+  .modal-doc::before { content:'📄'; flex-shrink:0; }
+
+  .modal-apply {
+    width:100%; padding:13px; background:var(--green-dark); color:white;
+    border:none; border-radius:var(--radius-sm); font-size:14px; font-weight:700;
+    cursor:pointer; transition:all .2s; font-family:inherit; margin-top:16px;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .modal-apply:hover { background:var(--green-mid); }
+
+  /* =============================================
+     TOAST & MISC
+  ============================================= */
+  .toast {
+    position:fixed; bottom:24px; right:24px;
+    background:var(--green-dark); color:white;
+    padding:12px 20px; border-radius:var(--radius-sm);
+    font-size:13px; font-weight:500; z-index:9999;
+    display:flex; align-items:center; gap:8px;
+    box-shadow:var(--shadow-lg);
+    transform:translateY(80px); opacity:0;
+    transition:all .3s ease; max-width:320px;
+  }
+  .toast.show { transform:translateY(0); opacity:1; }
+
+  .overlay2 { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:90; }
+  .overlay2.show { display:block; }
+
+  .fade-up { animation:fadeUp .5s ease both; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+  .d1{animation-delay:.1s} .d2{animation-delay:.2s} .d3{animation-delay:.3s}
+  .d4{animation-delay:.4s} .d5{animation-delay:.5s}
+
+  .section-label {
+    font-family:'Playfair Display',serif; font-size:18px; font-weight:700;
+    margin-bottom:14px; color:var(--text-dark);
+  }
+  .section-label small { font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; font-weight:400; color:var(--text-light); margin-left:8px; }
+
+  /* Loading spinner */
+  .spin { display:inline-block; animation:spin .7s linear infinite; }
+  @keyframes spin { to{ transform:rotate(360deg); } }
+  </style>
+</head>
+
+<body>
+
+<div class="overlay2" id="overlay2" onclick="closeSidebar()"></div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal" id="modalContent">
+    <button class="modal-close" onclick="document.getElementById('modalOverlay').classList.remove('show')">✕</button>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><span id="t-icon">✅</span><span id="t-msg"></span></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-title">Gram<span>Shakti</span></div>
+    <div class="logo-tag">Village Super App</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">Main</div>
+    <a class="nav-item" href="index.html">🏠 Dashboard</a>
+    <div class="nav-label">Farming</div>
+    <a class="nav-item" href="#">🌿 Crop Doctor <span class="nav-badge">AI</span></a>
+    <a class="nav-item" href="weather.html">⛅ Farm Weather</a>
+    <a class="nav-item" href="mandi.html">📊 Mandi Prices <span class="nav-badge">Live</span></a>
+    <a class="nav-item" href="#">🛒 Farm Market</a>
+    <div class="nav-label">Government</div>
+    <a class="nav-item active" href="scheme.html">🏛️ Scheme Finder <span class="nav-badge">New</span></a>
+    <a class="nav-item" href="#">💳 Kisan Loans</a>
+    <div class="nav-label">Village Life</div>
+    <a class="nav-item" href="#">🏥 Health & Doctor</a>
+    <a class="nav-item" href="#">🆘 Emergency SOS</a>
+    <a class="nav-item" href="#">💼 Jobs & MNREGA</a>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="user-card">
+      <div class="user-avatar">👨‍🌾</div>
+      <div>
+        <div class="user-name">Raju Patil</div>
+        <div class="user-sub">Nandgaon Village</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <button class="hamburger" onclick="openSidebar()">
+        <div class="ham-line"></div><div class="ham-line"></div><div class="ham-line"></div>
+      </button>
+      <div>
+        <div class="page-title">Govt Scheme Finder</div>
+        <div class="page-sub" id="pageSub">Find every scheme you qualify for instantly</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="firebase-badge">🔥 Firebase</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- HERO BANNER -->
+    <div class="page-hero fade-up">
+      <div class="hero-inner">
+        <div class="hero-text">
+          <h1>Find Your <span>Government Benefits</span></h1>
+          <p>Over 40 central and state schemes for farmers and villagers. Fill your profile once — we show every scheme you are eligible for. Apply directly from here.</p>
+          <div class="hero-stats">
+            <div class="h-stat"><div class="h-stat-num">40+</div><div class="h-stat-lbl">Total Schemes</div></div>
+            <div class="h-stat"><div class="h-stat-num">₹2L+</div><div class="h-stat-lbl">Avg Annual Benefit</div></div>
+            <div class="h-stat"><div class="h-stat-num">5 min</div><div class="h-stat-lbl">To Find Your Schemes</div></div>
+          </div>
+        </div>
+        <div class="hero-emoji">🏛️</div>
+      </div>
+    </div>
+
+    <!-- MAIN TWO COLUMN LAYOUT -->
+    <div class="two-col">
+
+      <!-- LEFT: PROFILE FORM -->
+      <div class="box fade-up d1">
+        <div class="box-title">👨‍🌾 Your Profile</div>
+        <div class="box-sub">Fill this once — saved to Firebase automatically</div>
+
+        <!-- Firebase status indicator -->
+        <div class="db-status demo-mode" id="dbStatus">
+          <div class="db-status-dot"></div>
+          <span id="dbStatusText">Demo mode — add Firebase config to save</span>
+        </div>
+
+        <!-- Saved profile indicator (hidden initially) -->
+        <div class="saved-badge" id="savedBadge" style="display:none">
+          ✅ Profile saved to Firebase
+        </div>
+
+        <!-- PERSONAL INFO -->
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input class="form-input" id="f-name" type="text" placeholder="Raju Patil" value="Raju Patil"/>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Age</label>
+            <input class="form-input" id="f-age" type="number" placeholder="35" value="35" min="18" max="80"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Gender</label>
+            <div class="select-wrap">
+              <select class="form-select" id="f-gender">
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">State</label>
+            <div class="select-wrap">
+              <select class="form-select" id="f-state">
+                <option>Maharashtra</option>
+                <option>Uttar Pradesh</option>
+                <option>Punjab</option>
+                <option>Haryana</option>
+                <option>Madhya Pradesh</option>
+                <option>Rajasthan</option>
+                <option>Gujarat</option>
+                <option>Karnataka</option>
+                <option>Andhra Pradesh</option>
+                <option>Telangana</option>
+                <option>Tamil Nadu</option>
+                <option>Bihar</option>
+                <option>West Bengal</option>
+                <option>Odisha</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <div class="select-wrap">
+              <select class="form-select" id="f-category">
+                <option value="general">General</option>
+                <option value="obc">OBC</option>
+                <option value="sc">SC</option>
+                <option value="st">ST</option>
+                <option value="minority">Minority</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- LAND & INCOME -->
+        <div class="form-group">
+          <label class="form-label">Land Owned (acres)</label>
+          <div class="range-wrap">
+            <input class="range-input" id="f-land" type="range" min="0" max="25" step="0.5" value="3"
+                   oninput="document.getElementById('land-val').textContent = this.value + ' acres'"/>
+            <!--
+              oninput = fires every time slider moves
+              this.value = current slider value
+              We update the display text in real-time
+            -->
+            <div class="range-val" id="land-val">3 acres</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Annual Income (₹)</label>
+          <div class="select-wrap">
+            <select class="form-select" id="f-income">
+              <option value="0-50000">Below ₹50,000</option>
+              <option value="50000-100000" selected>₹50,000 – ₹1,00,000</option>
+              <option value="100000-200000">₹1,00,000 – ₹2,00,000</option>
+              <option value="200000-500000">₹2,00,000 – ₹5,00,000</option>
+              <option value="500000+">Above ₹5,00,000</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- CHECKBOXES -->
+        <div class="form-group">
+          <label class="form-label">I am a...</label>
+          <div class="check-group">
+            <label class="check-item">
+              <input type="checkbox" id="c-farmer" checked/>
+              <span class="check-label">🌾 Farmer / Agriculture worker</span>
+            </label>
+            <label class="check-item">
+              <input type="checkbox" id="c-bpl"/>
+              <span class="check-label">📋 BPL card holder</span>
+            </label>
+            <label class="check-item">
+              <input type="checkbox" id="c-disabled"/>
+              <span class="check-label">♿ Person with disability</span>
+            </label>
+            <label class="check-item">
+              <input type="checkbox" id="c-widow"/>
+              <span class="check-label">👩 Widow / Single woman head of family</span>
+            </label>
+            <label class="check-item">
+              <input type="checkbox" id="c-veteran"/>
+              <span class="check-label">🎖️ Ex-serviceman / Defence family</span>
+            </label>
+          </div>
+        </div>
+
+        <button class="find-btn" id="findBtn" onclick="findSchemes()">
+          🔍 Find My Schemes
+        </button>
+      </div>
+
+      <!-- RIGHT: RESULTS -->
+      <div class="box fade-up d2">
+        <div class="results-header">
+          <div class="box-title">Matching Schemes</div>
+          <div class="results-count" id="resultsCount">Fill profile →</div>
+        </div>
+
+        <!-- Category filters -->
+        <div class="scheme-filters" id="schemeFilters" style="display:none">
+          <button class="sf-pill active" onclick="filterSchemes('all',this)">All</button>
+          <button class="sf-pill" onclick="filterSchemes('income',this)">💰 Income Support</button>
+          <button class="sf-pill" onclick="filterSchemes('credit',this)">🏦 Credit & Loans</button>
+          <button class="sf-pill" onclick="filterSchemes('insurance',this)">🛡️ Insurance</button>
+          <button class="sf-pill" onclick="filterSchemes('subsidy',this)">🎁 Subsidy</button>
+        </div>
+
+        <!-- Empty state -->
+        <div class="empty-state" id="emptyState">
+          <span class="empty-icon">🏛️</span>
+          Fill your profile on the left and click<br/>
+          <strong>"Find My Schemes"</strong> to see results
+        </div>
+
+        <!-- Results -->
+        <div class="schemes-list" id="schemesList" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- STATS ROW -->
+    <div class="section-label fade-up d4">📊 Impact Numbers <small>— what these schemes have done</small></div>
+    <div class="box fade-up d4" style="margin-bottom:24px">
+      <div class="bottom-row">
+        <div class="stat-mini">
+          <span class="sm-icon">👨‍🌾</span>
+          <div class="sm-num" id="cnt1">0</div>
+          <div class="sm-lbl">Farmers benefitted under PM-KISAN</div>
+        </div>
+        <div class="stat-mini">
+          <span class="sm-icon">💰</span>
+          <div class="sm-num" id="cnt2">0</div>
+          <div class="sm-lbl">Crore disbursed under PM-KISAN annually</div>
+        </div>
+        <div class="stat-mini">
+          <span class="sm-icon">🏠</span>
+          <div class="sm-num" id="cnt3">0</div>
+          <div class="sm-lbl">Houses built under PMAY (Gramin)</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- =============================================
+     JAVASCRIPT
+============================================= -->
+<script>
+
+// ============================================================
+// SECTION 1: FIREBASE SETUP
+//
+// Firebase is Google's free cloud database
+// Steps to set up your own Firebase:
+// 1. Go to console.firebase.google.com
+// 2. Click "Add project" — name it "gramshakti"
+// 3. Go to "Firestore Database" → Create database
+// 4. Go to Project Settings → copy firebaseConfig
+// 5. Replace the config object below with your config
+// ============================================================
+
+var firebaseConfig = {
+  /*
+    ⚠️ REPLACE THIS with your actual Firebase config
+    Get it from Firebase Console → Project Settings → Your apps
+    
+    It will look like this:
+    apiKey: "AIzaSy...",
+    authDomain: "gramshakti-xyz.firebaseapp.com",
+    projectId: "gramshakti-xyz",
+    ...
+  */
+  apiKey:            "YOUR_API_KEY",
+  authDomain:        "YOUR_PROJECT.firebaseapp.com",
+  projectId:         "YOUR_PROJECT_ID",
+  storageBucket:     "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId:             "YOUR_APP_ID"
+};
+
+var db = null;
+/* db = our database connection. null until Firebase connects */
+
+var isFirebaseConnected = false;
+
+function initFirebase() {
+  try {
+    /*
+      try-catch = attempt to connect, handle errors gracefully
+    */
+    if (firebaseConfig.apiKey === 'YOUR_API_KEY') {
+      /* No real config — use demo mode */
+      setDbStatus(false);
+      return;
+    }
+
+    firebase.initializeApp(firebaseConfig);
+    /*
+      firebase.initializeApp() = start Firebase with our config
+      This connects our app to Google's servers
+    */
+
+    db = firebase.firestore();
+    /*
+      firebase.firestore() = get the Firestore database
+      db = our database object — we use this to read/write data
+    */
+
+    isFirebaseConnected = true;
+    setDbStatus(true);
+    loadSavedProfile();
+    /* If Firebase connected, load previously saved profile */
+
+  } catch(e) {
+    console.error('Firebase init error:', e);
+    setDbStatus(false);
+  }
+}
+
+function setDbStatus(connected) {
+  var el = document.getElementById('dbStatus');
+  var tx = document.getElementById('dbStatusText');
+  if (connected) {
+    el.className = 'db-status connected';
+    tx.textContent = '🔥 Firebase connected — profile auto-saved';
+  } else {
+    el.className = 'db-status demo-mode';
+    tx.textContent = '📝 Demo mode — add Firebase config to save profiles';
+  }
+}
+
+// ============================================================
+// SECTION 2: SAVE PROFILE TO FIREBASE
+// ============================================================
+
+async function saveProfileToFirebase(profile) {
+  /*
+    profile = the user's data object we want to save
+    
+    Firebase Firestore works like this:
+    Database
+    └── Collections (like a folder)
+        └── Documents (like a file with data)
+    
+    We save to: profiles/user_default
+    Collection = 'profiles'
+    Document ID = 'user_default'
+  */
+
+  if (!isFirebaseConnected || !db) return;
+  /* If not connected, skip — don't crash */
+
+  try {
+    await db.collection('profiles').doc('user_default').set(profile);
+    /*
+      db.collection('profiles') = get the 'profiles' collection
+      .doc('user_default')       = get specific document
+      .set(profile)              = save data (overwrites existing)
+      
+      await = wait for Firebase to confirm the save
+    */
+
+    document.getElementById('savedBadge').style.display = 'flex';
+    showToast('💾 Profile saved to Firebase!', '🔥');
+
+  } catch(e) {
+    console.error('Save error:', e);
+    showToast('❌ Could not save to Firebase', '❌');
+  }
+}
+
+// ============================================================
+// SECTION 3: LOAD PROFILE FROM FIREBASE
+// ============================================================
+
+async function loadSavedProfile() {
+  if (!db) return;
+
+  try {
+    var doc = await db.collection('profiles').doc('user_default').get();
+    /*
+      .get() = fetch the document from Firebase
+      Returns a DocumentSnapshot object
+    */
+
+    if (doc.exists) {
+      /*
+        doc.exists = true if document was found in Firebase
+        doc.data() = the actual data object
+      */
+      var profile = doc.data();
+
+      /* Fill the form with saved data */
+      document.getElementById('f-name').value    = profile.name     || '';
+      document.getElementById('f-age').value     = profile.age      || '';
+      document.getElementById('f-state').value   = profile.state    || 'Maharashtra';
+      document.getElementById('f-category').value= profile.category || 'general';
+      document.getElementById('f-income').value  = profile.income   || '50000-100000';
+      document.getElementById('f-land').value    = profile.land     || 3;
+      document.getElementById('land-val').textContent = (profile.land || 3) + ' acres';
+      document.getElementById('c-farmer').checked   = profile.isFarmer  || false;
+      document.getElementById('c-bpl').checked      = profile.isBPL     || false;
+      document.getElementById('c-disabled').checked = profile.isDisabled|| false;
+
+      document.getElementById('savedBadge').style.display = 'flex';
+      showToast('✅ Profile loaded from Firebase!', '🔥');
+    }
+  } catch(e) {
+    console.error('Load error:', e);
+  }
+}
+
+// ============================================================
+// SECTION 4: ALL GOVERNMENT SCHEMES DATABASE
+// ============================================================
+
+/*
+  This is our schemes database
+  In a real app, these would come from a government API or our Firebase
+  
+  Each scheme has:
+  - eligibility: a function that takes user profile and returns true/false
+  - All the display information
+*/
+
+var ALL_SCHEMES = [
+  {
+    id: 'pmkisan',
+    icon: '🌾',
+    name: 'PM-KISAN',
+    fullName: 'Pradhan Mantri Kisan Samman Nidhi',
+    ministry: 'Ministry of Agriculture',
+    benefit: '₹6,000/year',
+    benefitNum: 6000,
+    desc: 'Direct income support of ₹6,000 per year to all small and marginal farmer families. Money comes in 3 equal installments of ₹2,000 directly to bank account.',
+    category: 'income',
+    tags: ['tag-central','tag-income'],
+    tagLabels: ['Central Scheme','Income Support'],
+    featured: true,
+    deadline: 'Ongoing',
+    urgent: false,
+    applyLink: 'https://pmkisan.gov.in',
+    eligibility: function(p) {
+      return p.isFarmer && p.land > 0 && p.land <= 20 && !p.income.startsWith('500000');
+      /*
+        Return TRUE if:
+        - User is a farmer AND
+        - Has some land (> 0 acres) AND
+        - Land is not too much (<=20 acres) AND
+        - Income is not above ₹5 lakh
+      */
+    },
+    eligList: ['Must be a farmer', 'Land ownership required', 'Income below ₹5 lakh', 'Valid Aadhaar required'],
+    docs: ['Aadhaar Card', 'Land Records (7/12 extract)', 'Bank account details', 'Mobile number'],
+  },
+  {
+    id: 'pmfby',
+    icon: '🛡️',
+    name: 'PM Fasal Bima Yojana',
+    fullName: 'Pradhan Mantri Fasal Bima Yojana',
+    ministry: 'Ministry of Agriculture',
+    benefit: 'Crop insurance at 2% premium',
+    benefitNum: 0,
+    desc: 'Crop insurance at just 2% premium for Kharif crops and 1.5% for Rabi crops. Government pays the rest of the premium. Get full coverage against natural disasters.',
+    category: 'insurance',
+    tags: ['tag-central','tag-insurance'],
+    tagLabels: ['Central Scheme','Insurance'],
+    featured: false,
+    deadline: '31 July 2024',
+    urgent: true,
+    applyLink: 'https://pmfby.gov.in',
+    eligibility: function(p) { return p.isFarmer && p.land > 0; },
+    eligList: ['Must be a farmer', 'Any size of land', 'Pay only 2% premium', 'Valid land records needed'],
+    docs: ['Land records', 'Aadhaar Card', 'Bank details', 'Sowing certificate'],
+  },
+  {
+    id: 'kkc',
+    icon: '💳',
+    name: 'Kisan Credit Card',
+    fullName: 'Kisan Credit Card Scheme',
+    ministry: 'Ministry of Finance / NABARD',
+    benefit: 'Loan up to ₹3 lakh @ 4% interest',
+    benefitNum: 300000,
+    desc: 'Easy credit for farmers at just 4% interest per year (with timely repayment subsidy). Covers crop production, post-harvest, and farm maintenance expenses.',
+    category: 'credit',
+    tags: ['tag-central','tag-credit'],
+    tagLabels: ['Central Scheme','Easy Credit'],
+    featured: true,
+    deadline: 'Ongoing',
+    urgent: false,
+    applyLink: 'https://www.nabard.org/content1.aspx?id=572&catid=23&mid=23',
+    eligibility: function(p) { return p.isFarmer && p.land > 0; },
+    eligList: ['Farmer with land', 'Any bank account', 'Repayment history good', 'Valid Aadhaar'],
+    docs: ['Aadhaar + PAN', 'Land records', 'Passport photo', 'Bank statements'],
+  },
+  {
+    id: 'pmay',
+    icon: '🏠',
+    name: 'PMAY — Gramin',
+    fullName: 'Pradhan Mantri Awaas Yojana Gramin',
+    ministry: 'Ministry of Rural Development',
+    benefit: '₹1.20 lakh for house construction',
+    benefitNum: 120000,
+    desc: 'Financial assistance of ₹1.20 lakh (in plains) and ₹1.30 lakh (in hills) to construct a pucca house with basic amenities including toilet and LPG connection.',
+    category: 'subsidy',
+    tags: ['tag-central','tag-subsidy'],
+    tagLabels: ['Central Scheme','Housing'],
+    featured: false,
+    deadline: 'Ongoing',
+    urgent: false,
+    applyLink: 'https://pmayg.nic.in',
+    eligibility: function(p) {
+      return (p.isBPL || p.income === '0-50000' || p.income === '50000-100000') && p.category !== 'general';
+    },
+    eligList: ['BPL household OR low income', 'SC/ST/OBC/Minority priority', 'No pucca house owned', 'SECC 2011 listed'],
+    docs: ['Aadhaar Card', 'BPL Card', 'Bank account', 'SECC registration'],
+  },
+  {
+    id: 'mnrega',
+    icon: '⛏️',
+    name: 'MNREGA',
+    fullName: 'Mahatma Gandhi National Rural Employment Guarantee Act',
+    ministry: 'Ministry of Rural Development',
+    benefit: '100 days guaranteed work per year',
+    benefitNum: 0,
+    desc: '100 days of guaranteed employment per year for rural households at minimum wage. Work done within 5km of your home. Payment in 15 days directly to account.',
+    category: 'income',
+    tags: ['tag-central','tag-income'],
+    tagLabels: ['Central Scheme','Employment'],
+    featured: false,
+    deadline: 'Ongoing',
+    urgent: false,
+    applyLink: 'https://nrega.nic.in',
+    eligibility: function(p) { return p.income !== '500000+' && p.income !== '200000-500000'; },
+    eligList: ['Rural household', 'Adult member (18+)', 'Willing to do unskilled work', 'Job card required'],
+    docs: ['Aadhaar Card', 'Passport photo', 'Bank account', 'Address proof'],
+  },
+  {
+    id: 'ujjwala',
+    icon: '🔥',
+    name: 'PM Ujjwala Yojana',
+    fullName: 'Pradhan Mantri Ujjwala Yojana',
+    ministry: 'Ministry of Petroleum',
+    benefit: 'Free LPG connection + cylinder',
+    benefitNum: 0,
+    desc: 'Free LPG connection with first cylinder to women from BPL households. Reduces indoor air pollution and saves women from cooking on wood fire.',
+    category: 'subsidy',
+    tags: ['tag-central','tag-subsidy','tag-women'],
+    tagLabels: ['Central Scheme','Subsidy','Women'],
+    featured: false,
+    deadline: 'Ongoing',
+    urgent: false,
+    applyLink: 'https://www.pmuy.gov.in',
+    eligibility: function(p) { return p.isBPL || p.income === '0-50000'; },
+    eligList: ['BPL household', 'Woman\'s name required', 'No existing LPG connection', 'Valid Aadhaar'],
+    docs: ['Aadhaar Card', 'BPL Card', 'Bank account', 'Passport photo'],
+  },
+  {
+    id: 'kcc2',
+    icon: '🌱',
+    name: 'Soil Health Card Scheme',
+    fullName: 'Soil Health Card Scheme',
+    ministry: 'Ministry of Agriculture',
+    benefit: 'Free soil testing + fertilizer advice',
+    benefitNum: 0,
+    desc: 'Free soil health card for every farmer showing soil nutrient status and fertilizer recommendations. Helps reduce input costs and increase productivity.',
+    category: 'subsidy',
+    tags: ['tag-central','tag-subsidy'],
+    tagLabels: ['Central Scheme','Free Service'],
+    featured: false,
+    deadline: 'Ongoing',
+    urgent: false,
+    applyLink: 'https://soilhealth.dac.gov.in',
+    eligibility: function(p) { return p.isFarmer; },
+    eligList: ['Any farmer', 'Any land size', 'Register at nearest Krishi Vigyan Kendra', 'Free of cost'],
+    docs: ['Aadhaar Card', 'Land record (optional)', 'Mobile number'],
+  },
+  {
+    id: 'pmjdy',
+    icon: '🏦',
+    name: 'PM Jan Dhan Yojana',
+    fullName: 'Pradhan Mantri Jan Dhan Yojana',
+    ministry: 'Ministry of Finance',
+    benefit: '₹10,000 overdraft + ₹2 lakh insurance',
+    benefitNum: 10000,
+    desc: 'Zero balance savings account with RuPay debit card. Overdraft up to ₹10,000. Accident insurance of ₹2 lakh and life insurance of ₹30,000.',
+    category: 'credit',
+    tags: ['tag-central','tag-credit'],
+    tagLabels: ['Central Scheme','Banking'],
+    featured: false,
+    deadline: 'Ongoing',
+    urgent: false,
+    applyLink: 'https://pmjdy.gov.in',
+    eligibility: function(p) { return p.income !== '500000+'; },
+    eligList: ['Indian citizen 10 years+', 'No existing bank account OR wanting benefits', 'Any state'],
+    docs: ['Aadhaar Card', 'Passport photo'],
+  },
+  {
+    id: 'pmjjby',
+    icon: '❤️',
+    name: 'PMJJBY — Life Insurance',
+    fullName: 'Pradhan Mantri Jeevan Jyoti Bima Yojana',
+    ministry: 'Ministry of Finance',
+    benefit: '₹2 lakh life cover at ₹436/year',
+    benefitNum: 200000,
+    desc: 'Life insurance cover of ₹2 lakh for death due to any cause. Premium only ₹436 per year auto-deducted from bank account. For age 18-50.',
+    category: 'insurance',
+    tags: ['tag-central','tag-insurance'],
+    tagLabels: ['Central Scheme','Insurance'],
+    featured: false,
+    deadline: '31 May annually',
+    urgent: false,
+    applyLink: 'https://jansuraksha.gov.in',
+    eligibility: function(p) { return p.age >= 18 && p.age <= 50; },
+    eligList: ['Age 18 to 50 years', 'Active bank account with Jan Dhan or any bank', 'Auto-renewal every year'],
+    docs: ['Aadhaar Card', 'Bank account', 'Nomination form'],
+  },
+  {
+    id: 'pmsby',
+    icon: '🦺',
+    name: 'PMSBY — Accident Insurance',
+    fullName: 'Pradhan Mantri Suraksha Bima Yojana',
+    ministry: 'Ministry of Finance',
+    benefit: '₹2 lakh accident cover at ₹20/year',
+    benefitNum: 200000,
+    desc: 'Accident insurance of ₹2 lakh for death or total disability. Only ₹20 premium per year. Best value insurance scheme for every rural family member.',
+    category: 'insurance',
+    tags: ['tag-central','tag-insurance'],
+    tagLabels: ['Central Scheme','Accident Cover'],
+    featured: false,
+    deadline: '31 May annually',
+    urgent: false,
+    applyLink: 'https://jansuraksha.gov.in',
+    eligibility: function(p) { return p.age >= 18 && p.age <= 70; },
+    eligList: ['Age 18 to 70 years', 'Active savings bank account', 'Not already enrolled'],
+    docs: ['Aadhaar Card', 'Bank account', 'Application form'],
+  },
+  {
+    id: 'atal',
+    icon: '👴',
+    name: 'Atal Pension Yojana',
+    fullName: 'Atal Pension Yojana',
+    ministry: 'Ministry of Finance / PFRDA',
+    benefit: '₹1,000–₹5,000 monthly pension after 60',
+    benefitNum: 0,
+    desc: 'Guaranteed pension of ₹1,000 to ₹5,000 per month after age 60. Government contributes 50% for first 5 years for new subscribers. For unorganised sector workers.',
+    category: 'income',
+    tags: ['tag-central','tag-income'],
+    tagLabels: ['Central Scheme','Pension'],
+    featured: false,
+    deadline: 'Ongoing',
+    urgent: false,
+    applyLink: 'https://npscra.nsdl.co.in/scheme-details.php',
+    eligibility: function(p) { return p.age >= 18 && p.age <= 40 && p.income !== '500000+'; },
+    eligList: ['Age 18 to 40 years', 'Not income tax payer', 'Active bank account', 'Not a government employee'],
+    docs: ['Aadhaar Card', 'Bank account', 'Mobile number'],
+  },
+  {
+    id: 'women-agri',
+    icon: '👩‍🌾',
+    name: 'Mahila Kisan Sashaktikaran',
+    fullName: 'Mahila Kisan Sashaktikaran Pariyojana',
+    ministry: 'Ministry of Rural Development',
+    benefit: 'Free training + equipment subsidy',
+    benefitNum: 0,
+    desc: 'Empowers women farmers with training, access to inputs, credit, and market. Subsidised equipment and free skill development programs for women in agriculture.',
+    category: 'subsidy',
+    tags: ['tag-central','tag-women','tag-subsidy'],
+    tagLabels: ['Central Scheme','Women','Training'],
+    featured: false,
+    deadline: 'Ongoing',
+    urgent: false,
+    applyLink: 'https://aajeevika.gov.in',
+    eligibility: function(p) { return p.gender === 'female' && p.isFarmer; },
+    eligList: ['Woman farmer', 'Part of SHG preferred', 'Any land size', 'BPL preferred'],
+    docs: ['Aadhaar Card', 'Land records', 'SHG membership (if any)'],
+  },
+];
+
+// ============================================================
+// SECTION 5: FIND MATCHING SCHEMES
+// This is the main FILTERING logic
+// ============================================================
+
+var matchedSchemes   = [];
+var filteredSchemes  = [];
+var activeFilter     = 'all';
+
+function findSchemes() {
+  /* Step 1: Read all form values */
+  var profile = {
+    name:       document.getElementById('f-name').value,
+    age:        parseInt(document.getElementById('f-age').value) || 35,
+    gender:     document.getElementById('f-gender').value,
+    state:      document.getElementById('f-state').value,
+    category:   document.getElementById('f-category').value,
+    land:       parseFloat(document.getElementById('f-land').value) || 0,
+    income:     document.getElementById('f-income').value,
+    isFarmer:   document.getElementById('c-farmer').checked,
+    isBPL:      document.getElementById('c-bpl').checked,
+    isDisabled: document.getElementById('c-disabled').checked,
+    isWidow:    document.getElementById('c-widow').checked,
+    isVeteran:  document.getElementById('c-veteran').checked,
+  };
+  /*
+    .checked = true if checkbox is ticked, false if not
+    All profile data is collected in ONE object
+  */
+
+  /* Step 2: Show loading state on button */
+  var btn = document.getElementById('findBtn');
+  btn.innerHTML = '<span class="spin">⏳</span> Finding your schemes...';
+  btn.disabled = true;
+  /* disabled = true = button cannot be clicked while loading */
+
+  setTimeout(function() {
+    /* Step 3: Filter schemes using eligibility functions */
+    matchedSchemes = ALL_SCHEMES.filter(function(scheme) {
+      return scheme.eligibility(profile);
+      /*
+        .filter() = keep only schemes where eligibility() returns true
+        eligibility(profile) = the function we defined for each scheme
+        It receives the user's profile and checks if they qualify
+      */
+    });
+
+    /* Step 4: Sort — featured first, then by benefit amount */
+    matchedSchemes.sort(function(a, b) {
+      if (a.featured && !b.featured) return -1;
+      /* -1 = a comes before b = featured schemes first */
+      if (!a.featured && b.featured) return 1;
+      return b.benefitNum - a.benefitNum;
+      /* Sort by benefit amount descending */
+    });
+
+    filteredSchemes = matchedSchemes;
+
+    /* Step 5: Save to Firebase */
+    saveProfileToFirebase(profile);
+
+    /* Step 6: Render results */
+    renderSchemes();
+
+    /* Step 7: Show filter pills */
+    document.getElementById('schemeFilters').style.display = 'flex';
+
+    /* Step 8: Reset button */
+    btn.innerHTML = '🔍 Find My Schemes';
+    btn.disabled  = false;
+
+    /* Step 9: Update page subtitle */
+    document.getElementById('pageSub').textContent =
+      '✅ Found ' + matchedSchemes.length + ' schemes for ' + profile.name;
+
+    showToast('🎉 Found ' + matchedSchemes.length + ' schemes you qualify for!', '🏛️');
+
+  }, 800); /* 800ms delay to show loading animation */
+}
+
+// ============================================================
+// SECTION 6: RENDER SCHEME CARDS
+// ============================================================
+
+function renderSchemes() {
+  var list = document.getElementById('schemesList');
+  var empty = document.getElementById('emptyState');
+  var count = document.getElementById('resultsCount');
+
+  count.textContent = filteredSchemes.length + ' schemes found';
+
+  if (filteredSchemes.length === 0) {
+    list.style.display   = 'none';
+    empty.style.display  = 'block';
+    empty.innerHTML = '<span class="empty-icon">🤔</span>No schemes match this filter.<br>Try "All" category.';
+    return;
+  }
+
+  list.style.display  = 'flex';
+  empty.style.display = 'none';
+
+  list.innerHTML = filteredSchemes.map(function(s) {
+    var tagHTML = s.tags.map(function(cls, i) {
+      return '<span class="sc-tag ' + cls + '">' + s.tagLabels[i] + '</span>';
+    }).join('');
+
+    return `
+      <div class="scheme-card ${s.featured ? 'featured' : ''}"
+           onclick="openSchemeModal('${s.id}')">
+        <div class="sc-top">
+          <div class="sc-icon">${s.icon}</div>
+          <div class="sc-info">
+            <div class="sc-name">${s.name}</div>
+            <div class="sc-ministry">${s.ministry}</div>
+          </div>
+        </div>
+        <div class="sc-tags">${tagHTML}</div>
+        <div class="sc-benefit">${s.benefit}</div>
+        <div class="sc-desc">${s.desc.substring(0, 120)}...</div>
+        <div class="sc-eligibility">
+          <div class="sc-elig-title">You qualify because:</div>
+          <div class="sc-elig-list">
+            ${s.eligList.slice(0,3).map(function(e) {
+              return '<div class="sc-elig-item">' + e + '</div>';
+            }).join('')}
+          </div>
+        </div>
+        <div class="sc-footer">
+          <button class="sc-apply-btn" onclick="event.stopPropagation(); window.open('${s.applyLink}','_blank')">
+            Apply Online →
+          </button>
+          <div class="sc-deadline ${s.urgent ? 'urgent' : ''}">
+            📅 ${s.deadline}
+          </div>
+        </div>
+      </div>
+    `;
+    /*
+      event.stopPropagation() = stop the click from bubbling up to the card
+      Without this, clicking "Apply" would ALSO trigger the card's onclick
+      stopPropagation = "stop this click from spreading to parent elements"
+    */
+  }).join('');
+}
+
+// ============================================================
+// SECTION 7: FILTER SCHEMES BY CATEGORY
+// ============================================================
+
+function filterSchemes(cat, btn) {
+  activeFilter = cat;
+
+  /* Update active button */
+  document.querySelectorAll('.sf-pill').forEach(function(p) { p.classList.remove('active'); });
+  btn.classList.add('active');
+
+  /* Filter from matched schemes */
+  filteredSchemes = cat === 'all'
+    ? matchedSchemes
+    : matchedSchemes.filter(function(s) { return s.category === cat; });
+  /*
+    cat === 'all' ? matchedSchemes    = if 'all', show everything
+                 : matchedSchemes.filter(...) = otherwise filter by category
+    Ternary operator replaces if/else in one line
+  */
+
+  renderSchemes();
+}
+
+// ============================================================
+// SECTION 8: SCHEME DETAIL MODAL
+// ============================================================
+
+function openSchemeModal(id) {
+  var scheme = ALL_SCHEMES.find(function(s) { return s.id === id; });
+  /*
+    .find() = find FIRST item where the condition is true
+    Returns the item itself (not true/false like .filter())
+  */
+
+  if (!scheme) return;
+
+  document.getElementById('modalBody').innerHTML = `
+    <div class="modal-icon">${scheme.icon}</div>
+    <div class="modal-title">${scheme.name}</div>
+    <div class="modal-min">${scheme.fullName} • ${scheme.ministry}</div>
+    <div class="modal-benefit">${scheme.benefit}</div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">About This Scheme</div>
+      <p>${scheme.desc}</p>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">Who Can Apply</div>
+      <div class="modal-docs">
+        ${scheme.eligList.map(function(e){ return '<div class="modal-doc">' + e + '</div>'; }).join('')}
+      </div>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">Documents Needed</div>
+      <div class="modal-docs">
+        ${scheme.docs.map(function(d){ return '<div class="modal-doc">' + d + '</div>'; }).join('')}
+      </div>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">Deadline</div>
+      <p style="color:${scheme.urgent ? 'var(--danger)' : 'var(--text-mid)'}; font-weight:${scheme.urgent ? '700' : '400'}">
+        📅 ${scheme.deadline} ${scheme.urgent ? '— APPLY SOON!' : ''}
+      </p>
+    </div>
+
+    <button class="modal-apply" onclick="window.open('${scheme.applyLink}','_blank')">
+      🏛️ Apply Online at Official Website →
+    </button>
+  `;
+
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('modalOverlay')) {
+    document.getElementById('modalOverlay').classList.remove('show');
+  }
+  /* Only close if user clicked the BACKGROUND, not the modal itself */
+}
+
+// ============================================================
+// SECTION 9: ANIMATED COUNTERS
+// ============================================================
+
+function animateCounter(id, target, suffix) {
+  var el    = document.getElementById(id);
+  var start = 0;
+  var step  = target / 60; /* 60 steps total */
+  var timer = setInterval(function() {
+    start += step;
+    if (start >= target) { start = target; clearInterval(timer); }
+    el.textContent = Math.round(start).toLocaleString('en-IN') + (suffix || '');
+  }, 30);
+  /* Update every 30ms = smooth 1.8 second animation */
+}
+
+// ============================================================
+// SECTION 10: SIDEBAR + TOAST HELPERS
+// ============================================================
+
+function openSidebar()  {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('overlay2').classList.add('show');
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay2').classList.remove('show');
+}
+
+var toastTimer = null;
+function showToast(msg, icon) {
+  var t = document.getElementById('toast');
+  document.getElementById('t-msg').textContent  = msg;
+  document.getElementById('t-icon').textContent = icon || '✅';
+  t.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(function() { t.classList.remove('show'); }, 3500);
+}
+
+// ============================================================
+// SECTION 11: INITIALIZE ON PAGE LOAD
+// ============================================================
+
+window.addEventListener('load', function() {
+
+  /* Try to connect to Firebase */
+  initFirebase();
+
+  /* Auto-find schemes with default profile */
+  setTimeout(findSchemes, 500);
+
+  /* Animate the impact counters */
+  setTimeout(function() {
+    animateCounter('cnt1', 110, 'M+');   /* 110M farmers */
+    animateCounter('cnt2', 60000, 'Cr'); /* ₹60,000 crore */
+    animateCounter('cnt3', 2.95, 'Cr'); /* 2.95 crore houses */
+  }, 800);
+
+});
+
+</script>
+</body>
+</html>

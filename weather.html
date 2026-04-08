@@ -1,0 +1,1469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Farm Weather — GramShakti</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+  <style>
+  /* =============================================
+     CSS VARIABLES
+  ============================================= */
+  :root {
+    --green-dark:  #1a3c2e;
+    --green-mid:   #2d6a4f;
+    --green-light: #52b788;
+    --green-pale:  #d8f3dc;
+    --gold:        #f4a261;
+    --gold-pale:   #fff3e0;
+    --cream:       #fefae0;
+    --white:       #ffffff;
+    --text-dark:   #1b1b1b;
+    --text-mid:    #4a4a4a;
+    --text-light:  #888888;
+    --danger:      #e63946;
+    --sky-blue:    #4cc9f0;
+    --sidebar-w:   260px;
+    --radius-sm:   8px;
+    --radius-md:   14px;
+    --radius-lg:   20px;
+    --shadow-sm:   0 2px 8px rgba(0,0,0,0.07);
+    --shadow-md:   0 4px 20px rgba(0,0,0,0.12);
+    --shadow-lg:   0 8px 32px rgba(0,0,0,0.16);
+
+    /* Sky colors — change based on weather */
+    --sky-day:     #0096c7;
+    --sky-cloud:   #577590;
+    --sky-rain:    #3a405a;
+    --sky-night:   #1a1a2e;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: var(--cream);
+    color: var(--text-dark);
+    min-height: 100vh;
+    display: flex;
+  }
+
+  /* =============================================
+     SIDEBAR
+  ============================================= */
+  .sidebar {
+    width: var(--sidebar-w); min-height:100vh;
+    background: var(--green-dark);
+    display:flex; flex-direction:column;
+    position:fixed; top:0; left:0; z-index:100;
+    transition: transform 0.3s ease;
+  }
+  @media(max-width:768px){ .sidebar{ transform:translateX(-100%); } .sidebar.open{ transform:translateX(0); } }
+
+  .sidebar-logo { padding:28px 24px 20px; border-bottom:1px solid rgba(255,255,255,0.1); }
+  .logo-title { font-family:'Playfair Display',serif; font-size:22px; font-weight:800; color:var(--white); }
+  .logo-title span { color:var(--green-light); }
+  .logo-tag { font-size:11px; color:rgba(255,255,255,0.4); margin-top:3px; letter-spacing:.1em; text-transform:uppercase; }
+
+  .sidebar-nav { flex:1; padding:16px 12px; overflow-y:auto; }
+  .nav-label { font-size:10px; color:rgba(255,255,255,0.3); text-transform:uppercase; letter-spacing:.12em; padding:12px 12px 6px; }
+  .nav-item {
+    display:flex; align-items:center; gap:12px;
+    padding:11px 14px; border-radius:var(--radius-sm);
+    color:rgba(255,255,255,0.65); cursor:pointer;
+    transition:all 0.2s; margin-bottom:2px;
+    font-size:13.5px; font-weight:500; text-decoration:none;
+  }
+  .nav-item:hover { background:rgba(255,255,255,0.08); color:var(--white); transform:translateX(4px); }
+  .nav-item.active { background:var(--green-light); color:var(--green-dark); font-weight:600; }
+  .nav-badge { margin-left:auto; background:var(--gold); color:var(--green-dark); font-size:10px; font-weight:700; padding:2px 7px; border-radius:20px; }
+
+  .sidebar-bottom { padding:16px; border-top:1px solid rgba(255,255,255,0.1); }
+  .user-card { display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.07); padding:10px 12px; border-radius:var(--radius-sm); }
+  .user-avatar { width:36px; height:36px; border-radius:50%; background:var(--green-light); display:flex; align-items:center; justify-content:center; font-size:16px; }
+  .user-name { font-size:13px; font-weight:600; color:var(--white); }
+  .user-sub  { font-size:11px; color:rgba(255,255,255,0.4); }
+
+  /* =============================================
+     MAIN LAYOUT
+  ============================================= */
+  .main { flex:1; margin-left:var(--sidebar-w); display:flex; flex-direction:column; min-height:100vh; }
+  @media(max-width:768px){ .main{ margin-left:0; } }
+
+  /* TOPBAR */
+  .topbar {
+    background:var(--white); padding:0 28px; height:68px;
+    display:flex; align-items:center; justify-content:space-between;
+    border-bottom:1px solid rgba(0,0,0,0.06);
+    box-shadow:var(--shadow-sm); position:sticky; top:0; z-index:50; gap:16px;
+  }
+  .topbar-left { display:flex; align-items:center; gap:14px; }
+  .hamburger { display:none; flex-direction:column; gap:5px; cursor:pointer; padding:4px; background:none; border:none; }
+  @media(max-width:768px){ .hamburger{ display:flex; } }
+  .ham-line { width:22px; height:2px; background:var(--text-dark); border-radius:2px; }
+  .page-title { font-family:'Playfair Display',serif; font-size:20px; font-weight:700; }
+  .page-sub   { font-size:12px; color:var(--text-light); margin-top:1px; }
+  .topbar-right { display:flex; align-items:center; gap:10px; }
+  .icon-btn { width:38px; height:38px; border-radius:50%; background:var(--cream); border:1px solid rgba(0,0,0,0.06); display:flex; align-items:center; justify-content:center; font-size:16px; cursor:pointer; transition:all 0.2s; }
+  .icon-btn:hover { background:var(--green-pale); border-color:var(--green-light); transform:scale(1.05); }
+
+  /* =============================================
+     CONTENT
+  ============================================= */
+  .content { flex:1; padding:28px; }
+  @media(max-width:768px){ .content{ padding:16px; } }
+
+  /* =============================================
+     WEATHER HERO — Big current weather card
+  ============================================= */
+  .weather-hero {
+    border-radius: var(--radius-lg);
+    padding: 36px;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #0096c7, #0077b6);
+    /*
+      linear-gradient = smooth color transition
+      135deg = diagonal direction
+      #0096c7 = start color, #0077b6 = end color
+    */
+    color: white;
+    transition: background 1s ease;
+    /* Smooth background change when weather type changes */
+    min-height: 220px;
+  }
+
+  /* Animated background circles */
+  .weather-hero::before {
+    content:''; position:absolute;
+    width:400px; height:400px; border-radius:50%;
+    background:rgba(255,255,255,0.05);
+    top:-150px; right:-100px;
+    animation: float 8s ease-in-out infinite;
+    /*
+      float animation = gentle up-down movement
+      8s = slow, peaceful movement
+      infinite = never stops
+    */
+  }
+
+  .weather-hero::after {
+    content:''; position:absolute;
+    width:250px; height:250px; border-radius:50%;
+    background:rgba(255,255,255,0.04);
+    bottom:-80px; left:200px;
+    animation: float 10s ease-in-out infinite reverse;
+    /* reverse = moves opposite direction to the ::before circle */
+  }
+
+  @keyframes float {
+    0%,100% { transform: translateY(0) scale(1); }
+    50%      { transform: translateY(-20px) scale(1.05); }
+  }
+
+  .hero-content {
+    position:relative; z-index:1;
+    display:grid; grid-template-columns: 1fr auto;
+    /* 1fr auto = left takes all space, right wraps to content */
+    gap:20px; align-items:center;
+  }
+  @media(max-width:600px){ .hero-content{ grid-template-columns:1fr; } }
+
+  .current-weather { }
+
+  .location-row {
+    display:flex; align-items:center; gap:8px;
+    margin-bottom:8px;
+  }
+  .location-text {
+    font-size:13px; color:rgba(255,255,255,0.8);
+    font-weight:500; letter-spacing:.02em;
+  }
+  .location-btn {
+    font-size:11px; background:rgba(255,255,255,0.15);
+    border:1px solid rgba(255,255,255,0.25);
+    color:white; padding:3px 10px; border-radius:20px;
+    cursor:pointer; transition:all .2s; font-family:inherit;
+  }
+  .location-btn:hover { background:rgba(255,255,255,0.25); }
+
+  .temp-big {
+    font-family:'Playfair Display',serif;
+    font-size:80px; font-weight:800; line-height:1;
+    margin-bottom:4px;
+    /*
+      Very large font size = visually striking
+      The temperature is the hero element of this card
+    */
+  }
+
+  .feels-like { font-size:13px; color:rgba(255,255,255,0.65); margin-bottom:12px; }
+
+  .weather-desc-big {
+    font-size:20px; font-weight:600;
+    margin-bottom:16px; display:flex; align-items:center; gap:8px;
+  }
+
+  .weather-pills { display:flex; gap:8px; flex-wrap:wrap; }
+  .w-pill {
+    background:rgba(255,255,255,0.15);
+    border:1px solid rgba(255,255,255,0.2);
+    padding:6px 14px; border-radius:20px;
+    font-size:12px; font-weight:500;
+    display:flex; align-items:center; gap:5px;
+    backdrop-filter:blur(4px);
+  }
+
+  /* Right side: big weather icon */
+  .hero-icon {
+    font-size:100px;
+    text-align:center;
+    animation: float 5s ease-in-out infinite;
+    /* Floating weather emoji */
+    filter:drop-shadow(0 8px 20px rgba(0,0,0,0.2));
+    /*
+      drop-shadow on emoji = shadow under the emoji
+      filter applies to the whole element including transparent parts
+      (unlike box-shadow which follows the box shape)
+    */
+    line-height:1;
+  }
+
+  /* =============================================
+     CITY SEARCH
+  ============================================= */
+  .city-search {
+    display:flex; gap:10px; margin-bottom:24px; flex-wrap:wrap;
+  }
+
+  .city-input-wrap { flex:1; min-width:200px; position:relative; }
+
+  .city-input {
+    width:100%; padding:12px 16px 12px 44px;
+    border:1px solid rgba(0,0,0,0.1); border-radius:40px;
+    font-family:'Plus Jakarta Sans',sans-serif; font-size:14px;
+    background:var(--white); color:var(--text-dark);
+    outline:none; transition:all .2s;
+  }
+  .city-input:focus { border-color:var(--sky-blue); box-shadow:0 0 0 3px rgba(76,201,240,0.15); }
+  .city-input::placeholder { color:var(--text-light); }
+
+  .ci-icon { position:absolute; left:16px; top:50%; transform:translateY(-50%); font-size:18px; pointer-events:none; }
+
+  .search-btn {
+    padding:12px 24px; background:var(--green-dark); color:white;
+    border:none; border-radius:40px; font-family:'Plus Jakarta Sans',sans-serif;
+    font-size:14px; font-weight:600; cursor:pointer; transition:all .2s;
+    display:flex; align-items:center; gap:8px; white-space:nowrap;
+  }
+  .search-btn:hover { background:var(--green-mid); transform:translateY(-2px); box-shadow:var(--shadow-md); }
+
+  /* Quick city buttons */
+  .quick-cities {
+    display:flex; gap:8px; margin-bottom:24px; flex-wrap:wrap; align-items:center;
+  }
+  .qc-label { font-size:12px; color:var(--text-light); font-weight:500; }
+  .qc-btn {
+    padding:6px 14px; background:var(--white);
+    border:1px solid rgba(0,0,0,0.1); border-radius:20px;
+    font-size:12px; font-weight:600; cursor:pointer;
+    transition:all .2s; color:var(--text-mid); font-family:inherit;
+  }
+  .qc-btn:hover { border-color:var(--green-light); color:var(--green-mid); background:var(--green-pale); }
+
+  /* =============================================
+     WEATHER STATS ROW
+  ============================================= */
+  .stats-row {
+    display:grid; grid-template-columns:repeat(4,1fr);
+    gap:14px; margin-bottom:24px;
+  }
+  @media(max-width:900px){ .stats-row{ grid-template-columns:repeat(2,1fr); } }
+  @media(max-width:500px){ .stats-row{ grid-template-columns:repeat(2,1fr); gap:10px; } }
+
+  .stat-card {
+    background:var(--white); border-radius:var(--radius-md);
+    padding:18px 20px; box-shadow:var(--shadow-sm);
+    border:1px solid rgba(0,0,0,0.04);
+    border-top:3px solid var(--tc, var(--green-light));
+    transition:transform .2s, box-shadow .2s; cursor:default;
+  }
+  .stat-card:hover { transform:translateY(-3px); box-shadow:var(--shadow-md); }
+  .stat-icon { font-size:24px; margin-bottom:10px; display:block; }
+  .stat-val  { font-family:'Playfair Display',serif; font-size:26px; font-weight:700; line-height:1; margin-bottom:4px; }
+  .stat-lbl  { font-size:11px; color:var(--text-light); text-transform:uppercase; letter-spacing:.06em; }
+  .stat-hint { font-size:11px; color:var(--text-mid); margin-top:5px; font-weight:500; }
+
+  /* =============================================
+     MAIN GRID: 7-Day + Chart
+  ============================================= */
+  .mid-grid {
+    display:grid; grid-template-columns:1fr 1.3fr;
+    gap:20px; margin-bottom:24px;
+  }
+  @media(max-width:900px){ .mid-grid{ grid-template-columns:1fr; } }
+
+  .box {
+    background:var(--white); border-radius:var(--radius-md);
+    padding:22px; box-shadow:var(--shadow-sm);
+    border:1px solid rgba(0,0,0,0.04);
+  }
+
+  .box-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .box-title { font-family:'Playfair Display',serif; font-size:16px; font-weight:700; }
+  .box-title small { font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; font-weight:400; color:var(--text-light); margin-left:6px; }
+
+  /* =============================================
+     7-DAY FORECAST CARDS
+  ============================================= */
+  .forecast-list { display:flex; flex-direction:column; gap:8px; }
+
+  .forecast-day {
+    display:flex; align-items:center; gap:12px;
+    padding:10px 14px; border-radius:var(--radius-sm);
+    border:1px solid rgba(0,0,0,0.05);
+    background:var(--cream); cursor:pointer; transition:all .2s;
+  }
+  .forecast-day:hover { background:var(--green-pale); border-color:var(--green-light); }
+  .forecast-day.today { background:var(--green-pale); border-color:var(--green-light); border-width:1.5px; }
+
+  .fd-day   { font-size:12px; font-weight:600; color:var(--text-dark); min-width:36px; }
+  .fd-icon  { font-size:22px; }
+  .fd-desc  { flex:1; font-size:12px; color:var(--text-mid); }
+  .fd-rain  { font-size:11px; color:var(--sky-blue); font-weight:600; min-width:30px; text-align:right; }
+  .fd-temps { display:flex; flex-direction:column; align-items:flex-end; }
+  .fd-high  { font-family:'Playfair Display',serif; font-size:15px; font-weight:700; line-height:1; }
+  .fd-low   { font-size:11px; color:var(--text-light); }
+
+  /* =============================================
+     TEMPERATURE CHART
+  ============================================= */
+  .chart-wrap { position:relative; height:220px; }
+
+  /* =============================================
+     SOWING CALENDAR
+  ============================================= */
+  .sowing-grid {
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr));
+    gap:14px; margin-bottom:24px;
+  }
+
+  .sow-card {
+    background:var(--white); border-radius:var(--radius-md);
+    padding:20px; box-shadow:var(--shadow-sm);
+    border:1px solid rgba(0,0,0,0.04);
+    border-left:4px solid var(--sc, var(--green-light));
+    /*
+      border-left = only the LEFT border is colored
+      4px wide = thicker accent line on the left
+    */
+    transition:all .2s; cursor:pointer;
+  }
+  .sow-card:hover { transform:translateY(-3px); box-shadow:var(--shadow-md); }
+
+  .sow-top { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .sow-emoji { font-size:28px; }
+  .sow-crop  { font-size:14px; font-weight:700; color:var(--text-dark); }
+  .sow-var   { font-size:11px; color:var(--text-light); margin-top:1px; }
+
+  .sow-status {
+    display:inline-flex; align-items:center; gap:5px;
+    font-size:11px; font-weight:700; padding:4px 10px;
+    border-radius:20px; margin-bottom:10px;
+  }
+  .sow-ideal   { background:#e8f5e9; color:#1b5e20; }
+  .sow-good    { background:#e3f8ff; color:#0a4d6e; }
+  .sow-caution { background:#fff3e0; color:#e65100; }
+  .sow-avoid   { background:#ffebee; color:#b71c1c; }
+
+  .sow-reason { font-size:12px; color:var(--text-mid); line-height:1.5; margin-bottom:10px; }
+
+  .sow-bars { display:flex; flex-direction:column; gap:5px; }
+  .sow-bar-row { display:flex; align-items:center; gap:8px; }
+  .sow-bar-lbl { font-size:10px; color:var(--text-light); min-width:50px; }
+  .sow-bar-track { flex:1; height:5px; background:rgba(0,0,0,0.06); border-radius:3px; overflow:hidden; }
+  .sow-bar-fill  { height:100%; border-radius:3px; transition:width 1s ease; }
+  .sow-bar-val   { font-size:10px; font-weight:600; color:var(--text-dark); min-width:32px; text-align:right; }
+
+  /* =============================================
+     FARM TIPS
+  ============================================= */
+  .tips-grid {
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+    gap:12px;
+  }
+
+  .tip-card {
+    background:var(--white); border-radius:var(--radius-md);
+    padding:18px; box-shadow:var(--shadow-sm);
+    border:1px solid rgba(0,0,0,0.04);
+    transition:all .2s; cursor:pointer;
+  }
+  .tip-card:hover { transform:translateY(-2px); box-shadow:var(--shadow-md); }
+
+  .tip-icon { font-size:28px; margin-bottom:10px; display:block; }
+  .tip-title { font-size:13px; font-weight:700; color:var(--text-dark); margin-bottom:5px; }
+  .tip-body  { font-size:12px; color:var(--text-mid); line-height:1.55; }
+
+  .tip-urgency {
+    display:inline-block; font-size:10px; font-weight:700;
+    padding:3px 8px; border-radius:20px; margin-top:8px;
+  }
+  .urg-high { background:#ffebee; color:#b71c1c; }
+  .urg-med  { background:#fff3e0; color:#e65100; }
+  .urg-low  { background:#e8f5e9; color:#1b5e20; }
+
+  /* =============================================
+     LOADING STATE
+  ============================================= */
+  .loading-overlay {
+    position:fixed; inset:0; background:rgba(26,60,46,0.92);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    z-index:9999; gap:16px; transition:opacity .5s;
+  }
+  .loading-overlay.hidden { opacity:0; pointer-events:none; }
+  .loading-spinner {
+    width:48px; height:48px; border:3px solid rgba(255,255,255,0.2);
+    border-top-color:var(--green-light);
+    border-radius:50%;
+    animation: spin 0.8s linear infinite;
+    /*
+      spin = rotation animation
+      0.8s = fast rotation
+      linear = constant speed (no ease in/out)
+    */
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+    /* rotate(360deg) = one full rotation */
+  }
+  .loading-text { color:white; font-size:15px; font-weight:500; }
+  .loading-sub  { color:rgba(255,255,255,0.5); font-size:12px; }
+
+  /* =============================================
+     TOAST & OVERLAY
+  ============================================= */
+  .toast {
+    position:fixed; bottom:24px; right:24px;
+    background:var(--green-dark); color:white;
+    padding:12px 20px; border-radius:var(--radius-sm);
+    font-size:13px; font-weight:500; z-index:999;
+    display:flex; align-items:center; gap:8px;
+    box-shadow:var(--shadow-lg);
+    transform:translateY(80px); opacity:0;
+    transition:all .3s ease; max-width:300px;
+  }
+  .toast.show { transform:translateY(0); opacity:1; }
+
+  .overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:90; }
+  .overlay.show { display:block; }
+
+  /* =============================================
+     ANIMATIONS
+  ============================================= */
+  .fade-up { animation:fadeUp .5s ease both; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+  .d1{animation-delay:.1s} .d2{animation-delay:.2s} .d3{animation-delay:.3s}
+  .d4{animation-delay:.4s} .d5{animation-delay:.5s} .d6{animation-delay:.6s}
+
+  .section-label {
+    font-family:'Playfair Display',serif; font-size:18px; font-weight:700;
+    color:var(--text-dark); margin-bottom:14px;
+  }
+  .section-label small {
+    font-family:'Plus Jakarta Sans',sans-serif; font-size:12px;
+    font-weight:400; color:var(--text-light); margin-left:8px;
+  }
+  </style>
+</head>
+<body>
+
+<!-- LOADING OVERLAY -->
+<div class="loading-overlay" id="loader">
+  <div style="font-size:48px">🌤️</div>
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Fetching weather data...</div>
+  <div class="loading-sub">Getting hyperlocal forecast for your village</div>
+</div>
+
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+<div class="toast" id="toast"><span id="t-icon">✅</span><span id="t-msg"></span></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-title">Gram<span>Shakti</span></div>
+    <div class="logo-tag">Village Super App</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">Main</div>
+    <a class="nav-item" href="index.html">🏠 Dashboard</a>
+    <div class="nav-label">Farming</div>
+    <a class="nav-item" href="#">🌿 Crop Doctor <span class="nav-badge">AI</span></a>
+    <a class="nav-item active" href="weather.html">⛅ Farm Weather</a>
+    <a class="nav-item" href="mandi.html">📊 Mandi Prices <span class="nav-badge">Live</span></a>
+    <a class="nav-item" href="#">🛒 Farm Market</a>
+    <div class="nav-label">Government</div>
+    <a class="nav-item" href="#">🏛️ Scheme Finder <span class="nav-badge">New</span></a>
+    <a class="nav-item" href="#">💳 Kisan Loans</a>
+    <div class="nav-label">Village Life</div>
+    <a class="nav-item" href="#">🏥 Health & Doctor</a>
+    <a class="nav-item" href="#">🆘 Emergency SOS</a>
+    <a class="nav-item" href="#">💼 Jobs & MNREGA</a>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="user-card">
+      <div class="user-avatar">👨‍🌾</div>
+      <div>
+        <div class="user-name">Raju Patil</div>
+        <div class="user-sub">Nandgaon Village</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <button class="hamburger" onclick="openSidebar()">
+        <div class="ham-line"></div><div class="ham-line"></div><div class="ham-line"></div>
+      </button>
+      <div>
+        <div class="page-title">Farm Weather</div>
+        <div class="page-sub" id="pageSubtitle">Loading your village forecast...</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="icon-btn" onclick="detectLocation()" title="Use my GPS location">📍</div>
+      <div class="icon-btn" onclick="showToast('📤 Share weather report — coming soon!','📤')">📤</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- CITY SEARCH -->
+    <div class="city-search fade-up">
+      <div class="city-input-wrap">
+        <span class="ci-icon">🔍</span>
+        <input class="city-input" id="cityInput" type="text"
+               placeholder="Search city or village — e.g. Nashik, Pune, Delhi..."
+               onkeydown="if(event.key==='Enter') fetchWeather()"/>
+        <!--
+          onkeydown = fires when key is pressed
+          event.key === 'Enter' = check if ENTER key was pressed
+          fetchWeather() = our main API function
+        -->
+      </div>
+      <button class="search-btn" onclick="fetchWeather()">⛅ Get Forecast</button>
+    </div>
+
+    <div class="quick-cities fade-up d1">
+      <span class="qc-label">Quick:</span>
+      <!--
+        These buttons call fetchWeather with a city name
+        No need to type — just click
+      -->
+      <button class="qc-btn" onclick="fetchWeatherForCity('Nashik')">Nashik</button>
+      <button class="qc-btn" onclick="fetchWeatherForCity('Pune')">Pune</button>
+      <button class="qc-btn" onclick="fetchWeatherForCity('Delhi')">Delhi</button>
+      <button class="qc-btn" onclick="fetchWeatherForCity('Mumbai')">Mumbai</button>
+      <button class="qc-btn" onclick="fetchWeatherForCity('Nagpur')">Nagpur</button>
+      <button class="qc-btn" onclick="fetchWeatherForCity('Hyderabad')">Hyderabad</button>
+      <button class="qc-btn" onclick="fetchWeatherForCity('Bengaluru')">Bengaluru</button>
+    </div>
+
+    <!-- CURRENT WEATHER HERO -->
+    <div class="weather-hero fade-up d2" id="weatherHero">
+      <div class="hero-content">
+        <div class="current-weather">
+          <div class="location-row">
+            <span>📍</span>
+            <span class="location-text" id="locationText">Nashik, Maharashtra</span>
+            <button class="location-btn" onclick="detectLocation()">Use GPS</button>
+          </div>
+          <div class="temp-big" id="tempBig">28°</div>
+          <div class="feels-like" id="feelsLike">Feels like 31° • High 33° • Low 22°</div>
+          <div class="weather-desc-big" id="weatherDescBig">
+            <span id="heroIcon2">⛅</span>
+            <span id="heroDesc">Partly Cloudy</span>
+          </div>
+          <div class="weather-pills">
+            <div class="w-pill">💧 <span id="pillHumid">68%</span> Humidity</div>
+            <div class="w-pill">💨 <span id="pillWind">12 km/h</span> Wind</div>
+            <div class="w-pill">👁️ <span id="pillVis">10 km</span> Visibility</div>
+            <div class="w-pill">☀️ UV <span id="pillUV">5</span></div>
+          </div>
+        </div>
+        <div class="hero-icon" id="heroIconBig">⛅</div>
+      </div>
+    </div>
+
+    <!-- STATS CARDS -->
+    <div class="stats-row fade-up d3">
+      <div class="stat-card" style="--tc:#4cc9f0">
+        <span class="stat-icon">🌧️</span>
+        <div class="stat-val" id="statRain">8mm</div>
+        <div class="stat-lbl">Rainfall Today</div>
+        <div class="stat-hint" id="statRainHint">Moderate rain expected</div>
+      </div>
+      <div class="stat-card" style="--tc:#f4a261">
+        <span class="stat-icon">☀️</span>
+        <div class="stat-val" id="statSunrise">6:12</div>
+        <div class="stat-lbl">Sunrise</div>
+        <div class="stat-hint" id="statSunset">Sunset: 7:28 PM</div>
+      </div>
+      <div class="stat-card" style="--tc:#52b788">
+        <span class="stat-icon">🌬️</span>
+        <div class="stat-val" id="statPressure">1013</div>
+        <div class="stat-lbl">Pressure (hPa)</div>
+        <div class="stat-hint" id="statPressHint">Normal — stable weather</div>
+      </div>
+      <div class="stat-card" style="--tc:#e63946">
+        <span class="stat-icon">🌫️</span>
+        <div class="stat-val" id="statDew">19°</div>
+        <div class="stat-lbl">Dew Point</div>
+        <div class="stat-hint" id="statDewHint">Comfortable moisture</div>
+      </div>
+    </div>
+
+    <!-- 7-DAY FORECAST + TEMPERATURE CHART -->
+    <div class="mid-grid fade-up d4">
+
+      <!-- 7-Day Forecast -->
+      <div class="box">
+        <div class="box-header">
+          <div class="box-title">7-Day Forecast</div>
+          <span style="font-size:11px;color:var(--text-light)" id="forecastCity">Nashik</span>
+        </div>
+        <div class="forecast-list" id="forecastList">
+          <!-- filled by JavaScript -->
+        </div>
+      </div>
+
+      <!-- Temperature chart -->
+      <div class="box">
+        <div class="box-header">
+          <div class="box-title">Temperature <small>7-day trend</small></div>
+          <div style="display:flex;gap:10px;font-size:11px;align-items:center">
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:3px;background:#e63946;display:inline-block;border-radius:2px"></span>High</span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:3px;background:#4cc9f0;display:inline-block;border-radius:2px"></span>Low</span>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="tempChart"></canvas></div>
+      </div>
+
+    </div>
+
+    <!-- SOWING CALENDAR -->
+    <div class="fade-up d4">
+      <div class="section-label">🌱 Sowing Calendar <small>— based on current weather</small></div>
+      <div class="sowing-grid" id="sowingGrid">
+        <!-- filled by JavaScript -->
+      </div>
+    </div>
+
+    <!-- FARM TIPS -->
+    <div class="fade-up d5">
+      <div class="section-label">💡 Farm Tips for Today <small>— weather-based advice</small></div>
+      <div class="tips-grid" id="tipsGrid">
+        <!-- filled by JavaScript -->
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- =============================================
+     JAVASCRIPT — The Brain
+============================================= -->
+<script>
+
+// ============================================================
+// SECTION 1: API KEY AND SETTINGS
+//
+// OpenWeather API (FREE):
+// 1. Go to: https://openweathermap.org/api
+// 2. Click "Sign Up" — free account
+// 3. Go to "API Keys" tab
+// 4. Copy your key and paste it below
+//
+// FREE plan gives: 60 calls/minute, 1 million calls/month
+// More than enough for our project!
+// ============================================================
+
+var API_KEY = 'PASTE_YOUR_FREE_API_KEY_HERE';
+/*
+  ⚠️ IMPORTANT FOR STUDENTS:
+  Get your FREE key from openweathermap.org
+  Until then, the app uses demo data (works perfectly)
+*/
+
+var BASE_URL = 'https://api.openweathermap.org/data/2.5';
+/*
+  BASE_URL = the starting part of all API calls
+  Every OpenWeather URL starts with this
+*/
+
+var currentWeatherData = null;
+/* Store fetched data so other functions can use it */
+
+// ============================================================
+// SECTION 2: DEMO DATA
+// Used when no API key or when API fails
+// This is exactly what the real API returns — same format
+// ============================================================
+
+function getDemoData(city) {
+  /*
+    This function returns fake but realistic weather data
+    Same structure as what OpenWeather API actually returns
+    So when you add your real API key, everything still works!
+  */
+
+  var cities = {
+    nashik:     { temp:28, feels:31, min:22, max:33, humid:65, wind:12, vis:10, pressure:1013, desc:'Partly Cloudy',   icon:'⛅', bg:'135deg,#0096c7,#0077b6', rain:2  },
+    pune:       { temp:26, feels:28, min:20, max:31, humid:72, wind:14, vis:12, pressure:1010, desc:'Light Rain',       icon:'🌧️', bg:'135deg,#3a405a,#2d3561', rain:12 },
+    delhi:      { temp:38, feels:42, min:30, max:41, humid:40, wind:8,  vis:6,  pressure:1005, desc:'Hot & Sunny',     icon:'☀️', bg:'135deg,#ef9f27,#e07c00',  rain:0  },
+    mumbai:     { temp:31, feels:36, min:26, max:34, humid:85, wind:18, vis:8,  pressure:1008, desc:'Humid & Cloudy',  icon:'🌥️', bg:'135deg,#577590,#3a405a', rain:5  },
+    nagpur:     { temp:35, feels:39, min:27, max:38, humid:45, wind:10, vis:10, pressure:1007, desc:'Mostly Sunny',   icon:'🌤️', bg:'135deg,#f4a261,#e07c00',  rain:0  },
+    hyderabad:  { temp:33, feels:36, min:25, max:36, humid:55, wind:11, vis:9,  pressure:1009, desc:'Partly Cloudy',   icon:'⛅', bg:'135deg,#4cc9f0,#0096c7', rain:3  },
+    bengaluru:  { temp:24, feels:25, min:18, max:27, humid:68, wind:15, vis:14, pressure:1015, desc:'Pleasant & Clear',icon:'🌤️', bg:'135deg,#52b788,#2d6a4f', rain:0  },
+  };
+
+  var key  = city.toLowerCase().trim();
+  var data = cities[key] || cities['nashik'];
+  /* If city not found, use Nashik as default */
+
+  return data;
+}
+
+// ============================================================
+// SECTION 3: THE MAIN FETCH FUNCTION
+//
+// fetch() is HOW JavaScript gets data from the internet
+// It is ASYNCHRONOUS — it doesn't stop the page while waiting
+// ============================================================
+
+async function fetchWeather() {
+  /*
+    async function = this function uses 'await' inside
+    async/await = modern way to handle asynchronous operations
+    Makes code look synchronous (top to bottom) even though it isn't
+  */
+
+  var city = document.getElementById('cityInput').value.trim();
+  if (!city) {
+    showToast('⚠️ Please enter a city name', '⚠️');
+    return;
+  }
+
+  showLoader(true);
+  /* Show loading spinner */
+
+  try {
+    /*
+      try { } catch { } = error handling
+      Code in 'try' block runs normally
+      If ANY error happens, code jumps to 'catch' block
+      Prevents the whole page from crashing on errors
+    */
+
+    if (API_KEY === 'PASTE_YOUR_FREE_API_KEY_HERE') {
+      /* No API key yet — use demo data */
+      await simulateAPIDelay();
+      /*
+        await = "wait for this to finish before continuing"
+        simulateAPIDelay() = fake 1 second wait (like real API)
+      */
+      loadDemoData(city);
+    } else {
+      /* Real API key — fetch real data! */
+      await fetchRealWeather(city);
+    }
+
+  } catch (error) {
+    /*
+      error = the error object that was thrown
+      .message = human-readable description of what went wrong
+    */
+    console.error('Weather fetch error:', error);
+    /*
+      console.error() = prints error to browser developer console
+      Open DevTools (F12) → Console tab to see these messages
+      Great for debugging!
+    */
+    showToast('❌ Could not load weather. Using demo data.', '⚠️');
+    loadDemoData(city);
+  }
+
+  showLoader(false);
+}
+
+// ============================================================
+// SECTION 4: REAL API CALL using fetch()
+// ============================================================
+
+async function fetchRealWeather(city) {
+  /*
+    This is how you call a real API with fetch()
+    URL format: BASE_URL/weather?q=CityName&appid=KEY&units=metric
+    
+    ?q=     = query parameter (city name)
+    &appid= = your API key
+    &units= = metric = Celsius (imperial = Fahrenheit)
+  */
+
+  var url = BASE_URL + '/weather?q=' + encodeURIComponent(city) + '&appid=' + API_KEY + '&units=metric';
+  /*
+    encodeURIComponent() = convert special characters to URL-safe format
+    "New Delhi" → "New%20Delhi" (space becomes %20)
+    Without this, spaces in city names would break the URL
+  */
+
+  var response = await fetch(url);
+  /*
+    fetch(url) = send an HTTP GET request to that URL
+    Returns a Promise — await makes us wait for the response
+    response = the HTTP response object (headers, status, body)
+  */
+
+  if (!response.ok) {
+    /*
+      response.ok = true if status code is 200-299 (success)
+      response.ok = false if 404 (not found), 401 (unauthorized), etc.
+    */
+    throw new Error('City not found: ' + response.status);
+    /*
+      throw new Error() = create an error and throw it
+      This immediately jumps to the catch block above
+    */
+  }
+
+  var data = await response.json();
+  /*
+    response.json() = parse the response body as JSON
+    JSON = JavaScript Object Notation = the format APIs use
+    Returns a Promise — await makes us wait for parsing
+    
+    data = a plain JavaScript object with all the weather info
+  */
+
+  /*
+    data from OpenWeather looks like this:
+    {
+      name: "Nashik",
+      main: { temp: 28.3, feels_like: 31, humidity: 65, pressure: 1013 },
+      weather: [{ description: "partly cloudy", icon: "02d" }],
+      wind: { speed: 3.3 },
+      visibility: 10000,
+      sys: { sunrise: 1234567890, sunset: 1234567890, country: "IN" }
+    }
+  */
+
+  renderWeatherFromAPI(data);
+}
+
+// ============================================================
+// SECTION 5: CONVERT REAL API DATA → OUR FORMAT
+// ============================================================
+
+function renderWeatherFromAPI(data) {
+  /*
+    data = raw JSON from OpenWeather API
+    We extract the values we need and call our render functions
+  */
+
+  var temp     = Math.round(data.main.temp);
+  /* data.main.temp = temperature in Celsius (we asked for metric) */
+
+  var feels    = Math.round(data.main.feels_like);
+  var min      = Math.round(data.main.temp_min);
+  var max      = Math.round(data.main.temp_max);
+  var humid    = data.main.humidity;
+  var pressure = data.main.pressure;
+  var wind     = Math.round(data.wind.speed * 3.6);
+  /* 
+    API gives wind in m/s. We want km/h.
+    m/s × 3.6 = km/h (conversion formula)
+  */
+  var vis      = Math.round((data.visibility || 10000) / 1000);
+  /* 
+    API gives visibility in metres. We want km.
+    metres / 1000 = km
+    (data.visibility || 10000) = use 10000 if visibility is missing
+  */
+
+  var desc     = data.weather[0].description;
+  /* data.weather is an array — [0] gets the first item */
+
+  var city     = data.name + ', ' + data.sys.country;
+
+  /* Map OpenWeather icon codes to emojis */
+  var iconCode = data.weather[0].icon;
+  var emoji    = getWeatherEmoji(iconCode);
+  var bgGrad   = getWeatherGradient(iconCode);
+
+  var processed = {
+    temp, feels, min, max, humid, wind, vis, pressure,
+    desc, icon: emoji, bg: bgGrad, rain: 0, city
+    /*
+      Shorthand: { temp } = { temp: temp }
+      ES6 shorthand property — when key and variable name are same
+    */
+  };
+
+  renderAllWeather(processed, city.split(',')[0]);
+}
+
+// ============================================================
+// SECTION 6: MAP WEATHER CODES TO EMOJIS
+// ============================================================
+
+function getWeatherEmoji(iconCode) {
+  /*
+    OpenWeather uses codes like '01d' (clear day), '10n' (rain night)
+    We convert them to emojis
+  */
+  var map = {
+    '01d':'☀️','01n':'🌙',      /* clear */
+    '02d':'🌤️','02n':'🌤️',    /* few clouds */
+    '03d':'⛅','03n':'⛅',       /* scattered clouds */
+    '04d':'☁️','04n':'☁️',      /* overcast */
+    '09d':'🌧️','09n':'🌧️',    /* shower rain */
+    '10d':'🌦️','10n':'🌧️',    /* rain */
+    '11d':'⛈️','11n':'⛈️',     /* thunderstorm */
+    '13d':'❄️','13n':'❄️',      /* snow */
+    '50d':'🌫️','50n':'🌫️',    /* mist/fog */
+  };
+  return map[iconCode] || '⛅';
+  /* If code not found in map, return ⛅ as default */
+}
+
+function getWeatherGradient(iconCode) {
+  /* Return CSS gradient based on weather */
+  if (iconCode.startsWith('01')) return '135deg,#ef9f27,#e07c00'; /* sunny */
+  if (iconCode.startsWith('09') || iconCode.startsWith('10')) return '135deg,#3a405a,#2d3561'; /* rain */
+  if (iconCode.startsWith('11')) return '135deg,#2d3561,#1a1a2e'; /* storm */
+  if (iconCode.startsWith('13')) return '135deg,#90e0ef,#caf0f8'; /* snow */
+  return '135deg,#0096c7,#0077b6'; /* default blue */
+}
+
+// ============================================================
+// SECTION 7: LOAD DEMO DATA (when no API key)
+// ============================================================
+
+function simulateAPIDelay() {
+  return new Promise(function(resolve) {
+    setTimeout(resolve, 1000);
+    /*
+      new Promise() = create a Promise
+      Promise = an object representing a future value
+      resolve = function to call when done
+      
+      setTimeout(resolve, 1000) = after 1 second, call resolve
+      This makes await simulateAPIDelay() wait 1 second
+      Simulates real API network delay
+    */
+  });
+}
+
+function loadDemoData(city) {
+  var data  = getDemoData(city);
+  var clean = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
+  renderAllWeather(data, clean);
+}
+
+// ============================================================
+// SECTION 8: RENDER ALL WEATHER UI
+// This one function updates every part of the page
+// ============================================================
+
+function renderAllWeather(data, cityName) {
+  currentWeatherData = data;
+
+  updateHeroCard(data, cityName);
+  updateStatCards(data);
+  render7DayForecast(data, cityName);
+  renderTempChart(data);
+  renderSowingCalendar(data);
+  renderFarmTips(data);
+
+  document.getElementById('pageSubtitle').textContent =
+    cityName + ' — Updated ' + new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+
+  showToast('✅ Weather loaded for ' + cityName + '!', '⛅');
+}
+
+// ============================================================
+// SECTION 9: UPDATE THE HERO CARD
+// ============================================================
+
+function updateHeroCard(data, cityName) {
+  var hero = document.getElementById('weatherHero');
+  hero.style.background = 'linear-gradient(' + data.bg + ')';
+  /* 
+    Change the hero card background color based on weather
+    Sunny = orange, Rainy = dark blue, etc.
+  */
+
+  document.getElementById('locationText').textContent = cityName + ', India';
+  document.getElementById('tempBig').textContent      = data.temp + '°';
+  document.getElementById('feelsLike').textContent    = 'Feels like ' + data.feels + '° • High ' + data.max + '° • Low ' + data.min + '°';
+  document.getElementById('heroIcon2').textContent    = data.icon;
+  document.getElementById('heroDesc').textContent     = data.desc.charAt(0).toUpperCase() + data.desc.slice(1);
+  document.getElementById('heroIconBig').textContent  = data.icon;
+
+  /* Update pills */
+  document.getElementById('pillHumid').textContent = data.humid + '%';
+  document.getElementById('pillWind').textContent  = data.wind + ' km/h';
+  document.getElementById('pillVis').textContent   = data.vis + ' km';
+  document.getElementById('pillUV').textContent    = Math.round(data.temp / 7);
+  /* Rough UV estimate from temperature */
+}
+
+// ============================================================
+// SECTION 10: UPDATE STAT CARDS
+// ============================================================
+
+function updateStatCards(data) {
+  document.getElementById('statRain').textContent      = (data.rain || 0) + 'mm';
+  document.getElementById('statRainHint').textContent  = data.rain > 10 ? 'Heavy rain — delay field work'
+                                                       : data.rain > 3  ? 'Light rain — check irrigation'
+                                                       :                  'No significant rain';
+
+  document.getElementById('statPressure').textContent  = data.pressure || 1013;
+  document.getElementById('statPressHint').textContent = (data.pressure || 1013) < 1000 ? 'Low — storm possible'
+                                                       : 'Normal — stable weather';
+
+  var dew = Math.round(data.temp - ((100 - data.humid) / 5));
+  /*
+    Dew point formula: approx = temp - ((100 - humidity) / 5)
+    This is a simplified version of the meteorology formula
+  */
+  document.getElementById('statDew').textContent      = dew + '°';
+  document.getElementById('statDewHint').textContent  = dew > 24 ? 'Very humid — disease risk' : 'Comfortable moisture';
+
+  /* Sunrise/Sunset — hardcoded since we'd need Lat/Lng for real calculation */
+  document.getElementById('statSunrise').textContent = '6:12 AM';
+  document.getElementById('statSunset').textContent  = 'Sunset: 7:28 PM';
+}
+
+// ============================================================
+// SECTION 11: RENDER 7-DAY FORECAST
+// ============================================================
+
+function render7DayForecast(data, cityName) {
+  var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var today = new Date().getDay();
+  /* getDay() = 0 (Sunday) to 6 (Saturday) */
+
+  var icons = ['☀️','⛅','🌧️','🌦️','☀️','🌤️','⛅'];
+  var descs = ['Clear & Sunny','Partly Cloudy','Light Rain','Showers','Clear','Mostly Clear','Cloudy'];
+  var highs = [data.max, data.max-2, data.max-4, data.max-1, data.max+1, data.max-3, data.max-2];
+  var lows  = [data.min, data.min+1, data.min-1, data.min,   data.min+2, data.min,   data.min-1];
+  var rains = [data.rain || 0, 2, 15, 8, 0, 0, 5];
+
+  document.getElementById('forecastCity').textContent  = cityName;
+
+  document.getElementById('forecastList').innerHTML = days.map(function(_, i) {
+    /*
+      _ = the value (day name) — we don't use it, so we name it _
+      i = index (0 to 6)
+    */
+    var dayIndex = (today + i) % 7;
+    /*
+      (today + i) % 7 = cycle through days of week
+      If today is Friday (5) and i=2: (5+2)%7 = 0 = Sunday
+    */
+    var dayName = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : days[dayIndex];
+
+    return `
+      <div class="forecast-day ${i===0?'today':''}">
+        <div class="fd-day">${dayName}</div>
+        <div class="fd-icon">${icons[i]}</div>
+        <div class="fd-desc">${descs[i]}</div>
+        <div class="fd-rain">${rains[i] > 0 ? '💧'+rains[i]+'mm' : '—'}</div>
+        <div class="fd-temps">
+          <div class="fd-high">${highs[i]}°</div>
+          <div class="fd-low">${lows[i]}°</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ============================================================
+// SECTION 12: TEMPERATURE CHART using Chart.js
+// ============================================================
+
+var tempChartInstance = null;
+
+function renderTempChart(data) {
+  var days  = ['Today','Tue','Wed','Thu','Fri','Sat','Sun'];
+  var highs = [data.max, data.max-2, data.max-4, data.max-1, data.max+1, data.max-3, data.max-2];
+  var lows  = [data.min, data.min+1, data.min-1, data.min,   data.min+2, data.min,   data.min-1];
+
+  if (tempChartInstance) tempChartInstance.destroy();
+
+  var ctx = document.getElementById('tempChart').getContext('2d');
+
+  tempChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: days,
+      datasets: [
+        {
+          label: 'High',
+          data: highs,
+          borderColor: '#e63946',
+          backgroundColor: 'rgba(230,57,70,0.08)',
+          borderWidth: 2.5, fill: true, tension: 0.4,
+          pointBackgroundColor: '#e63946',
+          pointRadius: 5, pointHoverRadius: 7,
+        },
+        {
+          label: 'Low',
+          data: lows,
+          borderColor: '#4cc9f0',
+          backgroundColor: 'rgba(76,201,240,0.08)',
+          borderWidth: 2.5, fill: true, tension: 0.4,
+          pointBackgroundColor: '#4cc9f0',
+          pointRadius: 5, pointHoverRadius: 7,
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(26,60,46,0.95)',
+          titleColor: '#d8f3dc', bodyColor: 'rgba(255,255,255,0.8)',
+          callbacks: {
+            label: function(ctx) {
+              return ctx.dataset.label + ': ' + ctx.parsed.y + '°C';
+            }
+          }
+        }
+      },
+      scales: {
+        x: { grid:{color:'rgba(0,0,0,0.04)'}, ticks:{color:'#aaa', font:{size:11}} },
+        y: {
+          grid:{color:'rgba(0,0,0,0.04)'},
+          ticks:{color:'#aaa', font:{size:11}, callback: function(v){ return v+'°'; }}
+        }
+      }
+    }
+  });
+}
+
+// ============================================================
+// SECTION 13: SOWING CALENDAR — crop advice based on weather
+// ============================================================
+
+function renderSowingCalendar(data) {
+  var temp  = data.temp;
+  var humid = data.humid;
+  var rain  = data.rain || 0;
+
+  var crops = [
+    {
+      emoji:'🌾', name:'Wheat', variety:'Lok-1, GW-322',
+      getStatus: function() {
+        if (temp >= 20 && temp <= 28 && humid < 70) return { cls:'sow-ideal', label:'✅ Ideal to Sow', color:'#52b788' };
+        if (temp > 28) return { cls:'sow-caution', label:'⚠️ Too Hot', color:'#f4a261' };
+        return { cls:'sow-good', label:'👍 Good Conditions', color:'#4cc9f0' };
+      },
+      getReason: function() {
+        if (temp > 30) return 'Temperature too high. Wait for cooler weather (below 28°C) for better germination.';
+        return 'Temperature and humidity are ideal. Sow within 3 days for best results.';
+      },
+      tempNeeded: '20–28°C', humidNeeded: '60–70%', rainNeeded: '2–4mm'
+    },
+    {
+      emoji:'🍅', name:'Tomato', variety:'Pusa Ruby, Arka Vikas',
+      getStatus: function() {
+        if (temp >= 21 && temp <= 29 && humid >= 60) return { cls:'sow-ideal', label:'✅ Ideal to Sow', color:'#52b788' };
+        if (rain > 15) return { cls:'sow-avoid', label:'❌ Too Rainy', color:'#e63946' };
+        return { cls:'sow-good', label:'👍 Good Conditions', color:'#4cc9f0' };
+      },
+      getReason: function() {
+        if (rain > 15) return 'Heavy rain can cause root rot in tomatoes. Wait 3-4 days after rain stops.';
+        return 'Current temperature is good for tomato seedling transplant.';
+      },
+      tempNeeded: '21–29°C', humidNeeded: '60–75%', rainNeeded: '0–5mm'
+    },
+    {
+      emoji:'🧅', name:'Onion', variety:'Nasik Red, Bhima Raj',
+      getStatus: function() {
+        if (temp >= 22 && temp <= 32 && rain < 5) return { cls:'sow-ideal', label:'✅ Ideal to Sow', color:'#52b788' };
+        if (rain > 10) return { cls:'sow-avoid', label:'❌ Too Rainy', color:'#e63946' };
+        return { cls:'sow-good', label:'👍 Good Conditions', color:'#4cc9f0' };
+      },
+      getReason: function() {
+        if (rain > 10) return 'Onion dislikes waterlogging. Ensure field drainage before sowing.';
+        return 'Dry, warm conditions are ideal for onion germination.';
+      },
+      tempNeeded: '22–32°C', humidNeeded: '50–70%', rainNeeded: '0–3mm'
+    },
+    {
+      emoji:'🌱', name:'Soybean', variety:'JS-335, MACS-58',
+      getStatus: function() {
+        if (temp >= 25 && temp <= 32 && humid >= 60 && rain > 0) return { cls:'sow-ideal', label:'✅ Ideal to Sow', color:'#52b788' };
+        if (temp < 20) return { cls:'sow-caution', label:'⚠️ Too Cold', color:'#f4a261' };
+        return { cls:'sow-good', label:'👍 Good Conditions', color:'#4cc9f0' };
+      },
+      getReason: function() {
+        if (temp < 20) return 'Soybean needs warm soil (above 25°C) for proper germination.';
+        return 'Good moisture and warm temperature — excellent for soybean sowing.';
+      },
+      tempNeeded: '25–32°C', humidNeeded: '60–80%', rainNeeded: '5–15mm'
+    },
+    {
+      emoji:'🌽', name:'Maize', variety:'DHM-117, Vivek-9',
+      getStatus: function() {
+        if (temp >= 24 && temp <= 34) return { cls:'sow-ideal', label:'✅ Ideal to Sow', color:'#52b788' };
+        if (temp > 38) return { cls:'sow-avoid', label:'❌ Too Hot', color:'#e63946' };
+        return { cls:'sow-good', label:'👍 Good Conditions', color:'#4cc9f0' };
+      },
+      getReason: function() {
+        return 'Maize grows well in warm weather. Ensure irrigation is ready if no rain.';
+      },
+      tempNeeded: '24–34°C', humidNeeded: '55–75%', rainNeeded: '3–8mm'
+    },
+    {
+      emoji:'🌿', name:'Cotton', variety:'H-4, Bunny BG-II',
+      getStatus: function() {
+        if (temp >= 28 && temp <= 36 && rain < 8) return { cls:'sow-ideal', label:'✅ Ideal to Sow', color:'#52b788' };
+        if (rain > 15) return { cls:'sow-caution', label:'⚠️ Wait for Dry', color:'#f4a261' };
+        return { cls:'sow-good', label:'👍 Good Conditions', color:'#4cc9f0' };
+      },
+      getReason: function() {
+        return 'Cotton prefers hot, dry weather. Good time to prepare nursery beds.';
+      },
+      tempNeeded: '28–36°C', humidNeeded: '45–65%', rainNeeded: '0–5mm'
+    },
+  ];
+
+  document.getElementById('sowingGrid').innerHTML = crops.map(function(crop) {
+    var status   = crop.getStatus();
+    var reason   = crop.getReason();
+
+    /* Calculate % bars for temp, humidity, rain */
+    var tPct = Math.min(Math.max((temp / 40) * 100, 10), 100);
+    /* Clamp between 10% and 100% using Math.min and Math.max */
+
+    var hPct = Math.min(humid, 100);
+    var rPct = Math.min((rain / 20) * 100, 100);
+
+    var tColor = temp < 20 ? '#4cc9f0' : temp < 35 ? '#52b788' : '#e63946';
+    var hColor = humid < 40 ? '#f4a261' : '#52b788';
+    var rColor = rain > 15 ? '#e63946' : rain > 0 ? '#4cc9f0' : '#f4a261';
+
+    return `
+      <div class="sow-card" style="--sc:${status.color}"
+           onclick="showToast('${crop.emoji} ${crop.name}: ${reason}','${crop.emoji}')">
+        <div class="sow-top">
+          <div class="sow-emoji">${crop.emoji}</div>
+          <div>
+            <div class="sow-crop">${crop.name}</div>
+            <div class="sow-var">${crop.variety}</div>
+          </div>
+        </div>
+        <div class="sow-status ${status.cls}">${status.label}</div>
+        <div class="sow-reason">${reason}</div>
+        <div class="sow-bars">
+          <div class="sow-bar-row">
+            <div class="sow-bar-lbl">🌡️ Temp</div>
+            <div class="sow-bar-track"><div class="sow-bar-fill" style="width:${tPct}%;background:${tColor}"></div></div>
+            <div class="sow-bar-val">${temp}°</div>
+          </div>
+          <div class="sow-bar-row">
+            <div class="sow-bar-lbl">💧 Humid</div>
+            <div class="sow-bar-track"><div class="sow-bar-fill" style="width:${hPct}%;background:${hColor}"></div></div>
+            <div class="sow-bar-val">${humid}%</div>
+          </div>
+          <div class="sow-bar-row">
+            <div class="sow-bar-lbl">🌧️ Rain</div>
+            <div class="sow-bar-track"><div class="sow-bar-fill" style="width:${rPct}%;background:${rColor}"></div></div>
+            <div class="sow-bar-val">${rain}mm</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ============================================================
+// SECTION 14: FARM TIPS based on weather
+// ============================================================
+
+function renderFarmTips(data) {
+  var temp  = data.temp;
+  var rain  = data.rain || 0;
+  var humid = data.humid;
+  var wind  = data.wind;
+
+  /* Generate tips based on current conditions */
+  var tips = [];
+
+  if (rain > 10) {
+    tips.push({ icon:'🌧️', title:'Delay Spraying', urgency:'urg-high', urgLabel:'URGENT',
+      body:'Rain will wash away pesticides and fertilizers. Do not spray today. Wait for dry conditions.' });
+  }
+  if (rain < 2 && temp > 30) {
+    tips.push({ icon:'💧', title:'Irrigate Today', urgency:'urg-high', urgLabel:'URGENT',
+      body:'Hot and dry conditions — crops need water. Schedule irrigation in the morning or evening.' });
+  }
+  if (humid > 75) {
+    tips.push({ icon:'🍄', title:'Fungal Disease Risk', urgency:'urg-med', urgLabel:'CAUTION',
+      body:'High humidity increases fungal disease risk. Inspect crops for early signs of blight or mildew.' });
+  }
+  if (wind > 20) {
+    tips.push({ icon:'🌬️', title:'Wind Alert', urgency:'urg-med', urgLabel:'CAUTION',
+      body:'High winds can damage standing crops. Support tall plants like maize and sunflower with stakes.' });
+  }
+  if (temp >= 22 && temp <= 30 && rain < 5) {
+    tips.push({ icon:'✅', title:'Great Day to Work', urgency:'urg-low', urgLabel:'GOOD',
+      body:'Perfect weather for field operations — ploughing, sowing, weeding, and harvesting.' });
+  }
+  if (temp > 35) {
+    tips.push({ icon:'🌡️', title:'Heatwave Warning', urgency:'urg-high', urgLabel:'URGENT',
+      body:'Extreme heat can stress crops. Provide shade for nursery plants and increase irrigation frequency.' });
+  }
+  tips.push({ icon:'📱', title:'Check Tomorrow\'s Forecast', urgency:'urg-low', urgLabel:'TIP',
+    body:'Plan your farming schedule a day ahead. Tomorrow: ' + (rain > 5 ? 'Rain expected — prepare drainage.' : 'Good conditions — great for field work.') });
+  tips.push({ icon:'🌱', title:'Soil Moisture Check', urgency:'urg-low', urgLabel:'TIP',
+    body:'Do a finger test — push finger 2 inches into soil. If dry, irrigate. If wet, skip watering today.' });
+
+  document.getElementById('tipsGrid').innerHTML = tips.map(function(tip) {
+    return `
+      <div class="tip-card" onclick="showToast('${tip.icon} ${tip.title}: ${tip.body.substring(0,60)}...','${tip.icon}')">
+        <span class="tip-icon">${tip.icon}</span>
+        <div class="tip-title">${tip.title}</div>
+        <div class="tip-body">${tip.body}</div>
+        <span class="tip-urgency ${tip.urgency}">${tip.urgLabel}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+// ============================================================
+// SECTION 15: GPS LOCATION DETECTION
+// ============================================================
+
+function detectLocation() {
+  if (!navigator.geolocation) {
+    /*
+      navigator.geolocation = browser's built-in GPS API
+      If browser doesn't support it, show error
+    */
+    showToast('❌ GPS not supported on this browser', '❌');
+    return;
+  }
+
+  showLoader(true);
+
+  navigator.geolocation.getCurrentPosition(
+    /*
+      getCurrentPosition(successFn, errorFn) =
+      Ask user for GPS permission, then run successFn with location data
+    */
+
+    async function(position) {
+      /* SUCCESS — we got the GPS coordinates */
+      var lat = position.coords.latitude;
+      var lon = position.coords.longitude;
+      /*
+        latitude  = how far north/south  (e.g. 19.9975° = Mumbai)
+        longitude = how far east/west    (e.g. 73.7898° = Nashik)
+      */
+
+      if (API_KEY !== 'PASTE_YOUR_FREE_API_KEY_HERE') {
+        /* Real API — use lat/lon to get city name and weather */
+        var url = BASE_URL + '/weather?lat=' + lat + '&lon=' + lon + '&appid=' + API_KEY + '&units=metric';
+        try {
+          var res  = await fetch(url);
+          var data = await res.json();
+          renderWeatherFromAPI(data);
+        } catch(e) {
+          loadDemoData('Nashik');
+        }
+      } else {
+        /* Demo mode — show coordinates in toast */
+        showToast('📍 GPS: ' + lat.toFixed(2) + '°, ' + lon.toFixed(2) + '° — using demo data', '📍');
+        loadDemoData('Nashik');
+      }
+      showLoader(false);
+    },
+
+    function(error) {
+      /* ERROR — user denied GPS permission */
+      showLoader(false);
+      showToast('📍 GPS denied — please type your city name', '📍');
+    }
+  );
+}
+
+// ============================================================
+// SECTION 16: HELPER FUNCTIONS
+// ============================================================
+
+function fetchWeatherForCity(city) {
+  /* Shortcut — fill input and fetch */
+  document.getElementById('cityInput').value = city;
+  fetchWeather();
+}
+
+function showLoader(show) {
+  document.getElementById('loader').classList.toggle('hidden', !show);
+  /*
+    .classList.toggle(class, condition) =
+    Add class if condition is TRUE, remove if FALSE
+    .toggle('hidden', !show) = 
+    If show=true: !show=false → remove 'hidden' → loader visible
+    If show=false: !show=true → add 'hidden' → loader invisible
+  */
+}
+
+function openSidebar()  {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('overlay').classList.add('show');
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+var toastTimer = null;
+function showToast(msg, icon) {
+  var t = document.getElementById('toast');
+  document.getElementById('t-msg').textContent  = msg;
+  document.getElementById('t-icon').textContent = icon || '✅';
+  t.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(function() { t.classList.remove('show'); }, 3500);
+}
+
+// ============================================================
+// SECTION 17: AUTO-LOAD ON PAGE START
+// ============================================================
+
+window.addEventListener('load', function() {
+  /* Load Nashik weather by default when page opens */
+  setTimeout(function() {
+    fetchWeatherForCity('Nashik');
+  }, 300);
+  /* Small delay so page renders first, then loads data */
+});
+
+</script>
+</body>
+</html>

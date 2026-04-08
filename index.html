@@ -1,0 +1,2030 @@
+<!DOCTYPE html>
+<!--
+  DOCTYPE html = tells the browser "this is a modern HTML5 page"
+  Always put this at the very top of every HTML file
+-->
+
+<html lang="en">
+<!--
+  <html> = the root tag, everything goes inside this
+  lang="en" = tells the browser the page language is English
+-->
+
+<head>
+<!--
+  <head> = invisible section — contains settings, fonts, styles
+  Users never see what's inside head directly
+-->
+
+  <meta charset="UTF-8" />
+  <!-- UTF-8 = allows all characters including Hindi, emoji, etc. -->
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- 
+    viewport meta = makes the page look good on mobile phones
+    width=device-width = use the phone's actual screen width
+    initial-scale=1.0 = don't zoom in or out by default
+  -->
+
+  <title>GramShakti — Village Super App</title>
+  <!-- <title> = text shown on browser tab -->
+
+  <!-- GOOGLE FONTS — loading 2 beautiful fonts from the internet -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <!--
+    We are loading 2 fonts:
+    1. Playfair Display — fancy serif font for headings (looks premium)
+    2. Plus Jakarta Sans — clean modern font for body text
+    These load from Google's free font server
+  -->
+
+  <style>
+  /*
+    Everything inside <style> tags is CSS
+    CSS = rules that control HOW things look
+    Format is always:  selector { property: value; }
+  */
+
+  /* ========================================
+     CSS VARIABLES — Our color/size palette
+     Variables let us reuse the same value
+     everywhere. Change once = changes everywhere
+  ======================================== */
+  :root {
+    /*
+      :root = the whole page
+      -- before a name = this is a variable
+    */
+
+    /* Colors */
+    --green-dark:   #1a3c2e;   /* dark forest green — sidebar bg */
+    --green-mid:    #2d6a4f;   /* medium green — sidebar hover */
+    --green-light:  #52b788;   /* bright green — accents */
+    --green-pale:   #d8f3dc;   /* very light green — badges */
+    --gold:         #f4a261;   /* warm gold — highlights */
+    --gold-light:   #fff3e0;   /* pale gold — card bg */
+    --cream:        #fefae0;   /* warm cream — page background */
+    --white:        #ffffff;
+    --text-dark:    #1b1b1b;   /* almost black — main text */
+    --text-mid:     #4a4a4a;   /* dark gray — body text */
+    --text-light:   #888888;   /* light gray — small text */
+    --danger:       #e63946;   /* red — urgent things */
+    --sky:          #4cc9f0;   /* blue — info things */
+
+    /* Sizes */
+    --sidebar-width: 260px;    /* how wide the left sidebar is */
+    --radius-sm:  8px;          /* small rounded corners */
+    --radius-md:  14px;         /* medium rounded corners */
+    --radius-lg:  20px;         /* large rounded corners */
+
+    /* Shadows */
+    --shadow-sm: 0 2px 8px rgba(0,0,0,0.08);
+    --shadow-md: 0 4px 20px rgba(0,0,0,0.12);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.16);
+    /*
+      Box shadows create depth. Format:
+      X-offset  Y-offset  blur  color
+      0         2px       8px   semi-transparent black
+    */
+  }
+
+  /* ========================================
+     RESET — Remove browser default styles
+  ======================================== */
+  * {
+    margin: 0;       /* remove all default spacing outside elements */
+    padding: 0;      /* remove all default spacing inside elements */
+    box-sizing: border-box;
+    /*
+      box-sizing: border-box = when you set width:200px,
+      the padding and border are INCLUDED in that 200px
+      Without this, padding adds to the width (causes layout bugs)
+    */
+  }
+
+  /* ========================================
+     BODY — The whole page
+  ======================================== */
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    /* Use our loaded Google font. sans-serif = fallback if font fails */
+
+    background-color: var(--cream);
+    /* var(--cream) = use the --cream variable we defined above */
+
+    color: var(--text-dark);
+    /* Default text color for everything on the page */
+
+    min-height: 100vh;
+    /*
+      min-height: 100vh = page is AT LEAST 100% of viewport height
+      vh = viewport height unit (100vh = full screen height)
+    */
+
+    display: flex;
+    /*
+      display: flex = use Flexbox layout
+      Flexbox is the easiest way to put things side by side
+      The sidebar and main content will sit side by side
+    */
+
+    overflow-x: hidden;
+    /* overflow-x: hidden = hide any content that goes off the right edge */
+  }
+
+  /* ========================================
+     SIDEBAR — Left navigation panel
+  ======================================== */
+  .sidebar {
+    /*
+      .sidebar = selects any element with class="sidebar"
+      A class is like a label you put on HTML elements
+    */
+
+    width: var(--sidebar-width);     /* 260px wide */
+    min-height: 100vh;               /* full screen tall */
+    background-color: var(--green-dark);  /* dark green bg */
+    display: flex;
+    flex-direction: column;
+    /*
+      flex-direction: column = stack children vertically
+      Default flex puts things side by side (row)
+      column = puts things top to bottom
+    */
+
+    position: fixed;
+    /*
+      position: fixed = sidebar stays in place even when you scroll
+      It is "fixed" to the screen, not the page
+    */
+
+    top: 0;    /* start at the very top */
+    left: 0;   /* start at the very left */
+    z-index: 100;
+    /*
+      z-index = like layers in Photoshop
+      Higher number = on top of other elements
+      100 = sidebar is on top of everything else
+    */
+
+    transition: transform 0.3s ease;
+    /*
+      transition = smooth animation when a property changes
+      transform 0.3s ease = when 'transform' changes, 
+      animate it over 0.3 seconds with 'ease' timing
+      (ease = starts fast, slows down at end)
+    */
+  }
+
+  /* Sidebar on mobile — hide it off-screen by default */
+  @media (max-width: 768px) {
+    /*
+      @media = Media Query = apply these rules ONLY
+      when screen width is 768px or smaller (mobile/tablet)
+    */
+    .sidebar {
+      transform: translateX(-100%);
+      /*
+        translateX(-100%) = move the sidebar 100% of its own width
+        to the LEFT — this hides it off screen
+        It will slide in when we add .open class with JavaScript
+      */
+    }
+    .sidebar.open {
+      transform: translateX(0);
+      /* translateX(0) = back to normal position = visible */
+    }
+  }
+
+  /* SIDEBAR LOGO AREA */
+  .sidebar-logo {
+    padding: 28px 24px 20px;
+    /* padding: top right bottom left (shorthand with 4 values) */
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    /*
+      rgba(255,255,255,0.1) = white color at 10% opacity
+      rgba = Red Green Blue Alpha (opacity)
+      This creates a subtle divider line
+    */
+  }
+
+  .logo-icon {
+    font-size: 36px;
+    /* font-size applies to emoji and text */
+    margin-bottom: 8px;
+    display: block;
+    /* display: block = takes full width, goes to new line */
+  }
+
+  .logo-title {
+    font-family: 'Playfair Display', serif;
+    /* Use the fancy font for the logo */
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--white);
+    line-height: 1.1; /* space between lines = 110% of font size */
+  }
+
+  .logo-title span {
+    /* Selects the <span> inside .logo-title */
+    color: var(--green-light); /* make "Shakti" part green */
+  }
+
+  .logo-tagline {
+    font-size: 11px;
+    color: rgba(255,255,255,0.5); /* white at 50% opacity = faded */
+    margin-top: 4px;
+    letter-spacing: 0.08em;
+    /* letter-spacing = space between each letter */
+    text-transform: uppercase;
+    /* text-transform: uppercase = makes all letters CAPITAL */
+  }
+
+  /* SIDEBAR NAVIGATION LINKS */
+  .sidebar-nav {
+    flex: 1;
+    /* flex: 1 = this element grows to fill remaining space */
+    padding: 16px 12px;
+    overflow-y: auto;
+    /* overflow-y: auto = if content is too tall, show scroll bar */
+  }
+
+  .nav-section-title {
+    font-size: 10px;
+    color: rgba(255,255,255,0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    padding: 12px 12px 6px;
+    /* top right bottom left padding */
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    /* align-items: center = vertically center the icon and text */
+    gap: 12px;
+    /* gap = space between flex children */
+    padding: 11px 14px;
+    border-radius: var(--radius-sm);
+    color: rgba(255,255,255,0.65); /* faded white */
+    cursor: pointer;
+    /* cursor: pointer = show hand cursor on hover (like a link) */
+    transition: all 0.2s ease;
+    /* all = animate ALL properties that change */
+    margin-bottom: 2px;
+    font-size: 13.5px;
+    font-weight: 500;
+    position: relative; /* needed for the active indicator */
+  }
+
+  .nav-item:hover {
+    /*
+      :hover = apply these styles when mouse is over this element
+    */
+    background-color: rgba(255,255,255,0.08);
+    color: var(--white);
+    transform: translateX(4px);
+    /* slight slide right on hover for nice feel */
+  }
+
+  .nav-item.active {
+    /*
+      .active = when JavaScript adds class="active" to this item
+      This is the currently selected page
+    */
+    background-color: var(--green-light);
+    color: var(--green-dark);
+    font-weight: 600;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .nav-icon {
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
+    flex-shrink: 0;
+    /* flex-shrink: 0 = don't let the icon get smaller */
+  }
+
+  .nav-badge {
+    margin-left: auto;
+    /* margin-left: auto = push this to the far right */
+    background: var(--gold);
+    color: var(--green-dark);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 20px;
+  }
+
+  /* SIDEBAR BOTTOM — user info */
+  .sidebar-bottom {
+    padding: 16px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .user-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,0.07);
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+  }
+
+  .user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    /* border-radius: 50% = makes any element a circle */
+    background: var(--green-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* align-items + justify-content center = center content 
+       both horizontally and vertically inside this circle */
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .user-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--white);
+  }
+
+  .user-village {
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+  }
+
+  /* ========================================
+     MAIN CONTENT — Right side
+  ======================================== */
+  .main {
+    flex: 1;
+    /* flex: 1 = takes up ALL remaining space after sidebar */
+
+    margin-left: var(--sidebar-width);
+    /*
+      margin-left = push content to the right by sidebar's width
+      This prevents content from hiding behind the fixed sidebar
+    */
+
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* On mobile, no margin since sidebar is hidden */
+  @media (max-width: 768px) {
+    .main {
+      margin-left: 0;
+    }
+  }
+
+  /* TOP HEADER BAR */
+  .topbar {
+    background: var(--white);
+    padding: 0 28px;
+    height: 68px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    /* space-between = first item left, last item right */
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    box-shadow: var(--shadow-sm);
+    position: sticky;
+    /* position: sticky = sticks to top when you scroll */
+    top: 0;
+    z-index: 50;
+    gap: 16px;
+  }
+
+  .topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  /* Hamburger button — only shows on mobile */
+  .hamburger {
+    display: none;
+    /* display: none = completely hide this element */
+    flex-direction: column;
+    gap: 5px;
+    cursor: pointer;
+    padding: 4px;
+    background: none;
+    border: none;
+    /* border: none = remove button's default border */
+  }
+
+  @media (max-width: 768px) {
+    .hamburger {
+      display: flex;
+      /* Show it only on mobile */
+    }
+  }
+
+  .ham-line {
+    width: 22px;
+    height: 2px;
+    background: var(--text-dark);
+    border-radius: 2px;
+    transition: all 0.3s ease;
+  }
+
+  .page-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-dark);
+  }
+
+  .page-subtitle {
+    font-size: 12px;
+    color: var(--text-light);
+    margin-top: 1px;
+  }
+
+  /* TOP RIGHT — search and buttons */
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .search-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--cream);
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 40px;
+    /* very high border-radius = pill shape */
+    padding: 8px 16px;
+    font-size: 13px;
+    color: var(--text-light);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .search-box:hover {
+    border-color: var(--green-light);
+    background: white;
+  }
+
+  .icon-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--cream);
+    border: 1px solid rgba(0,0,0,0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .icon-btn:hover {
+    background: var(--green-pale);
+    border-color: var(--green-light);
+    transform: scale(1.05);
+  }
+
+  /* Notification dot on bell icon */
+  .notif-dot {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 8px;
+    height: 8px;
+    background: var(--danger);
+    border-radius: 50%;
+    border: 2px solid white;
+    /* white border = looks like a ring around the red dot */
+  }
+
+  /* ========================================
+     PAGE CONTENT — The scrollable area
+  ======================================== */
+  .content {
+    flex: 1;
+    padding: 28px;
+    /* padding on all 4 sides = breathing room */
+  }
+
+  @media (max-width: 768px) {
+    .content {
+      padding: 16px;
+    }
+  }
+
+  /* ========================================
+     HERO BANNER — Top welcome section
+  ======================================== */
+  .hero-banner {
+    background: var(--green-dark);
+    border-radius: var(--radius-lg);
+    padding: 32px 36px;
+    margin-bottom: 28px;
+    position: relative;
+    overflow: hidden;
+    /* overflow: hidden = crop anything that goes outside this box */
+  }
+
+  /* Decorative circles behind the hero content */
+  .hero-banner::before {
+    /*
+      ::before = create a fake element BEFORE the content
+      Used for decorative shapes without adding HTML
+    */
+    content: '';
+    /* content: '' = required to make ::before/::after appear */
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    background: rgba(82,183,136,0.12);
+    top: -80px;
+    right: -60px;
+    /* negative values = goes outside the container (hidden by overflow:hidden) */
+  }
+
+  .hero-banner::after {
+    content: '';
+    position: absolute;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: rgba(244,162,97,0.1);
+    bottom: -60px;
+    right: 200px;
+  }
+
+  .hero-content {
+    position: relative;
+    /* position: relative = stays above the ::before circles (z-index) */
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    /* flex-wrap: wrap = if items don't fit in one row, go to next row */
+    gap: 20px;
+  }
+
+  .hero-text h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--white);
+    line-height: 1.2;
+    margin-bottom: 8px;
+  }
+
+  .hero-text h1 span {
+    color: var(--green-light);
+  }
+
+  .hero-text p {
+    color: rgba(255,255,255,0.7);
+    font-size: 14px;
+    max-width: 420px;
+    line-height: 1.6;
+    /* line-height: 1.6 = space between lines = 160% of font size */
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+
+  /* PRIMARY BUTTON */
+  .btn-primary {
+    background: var(--green-light);
+    color: var(--green-dark);
+    padding: 11px 22px;
+    border-radius: 40px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-primary:hover {
+    background: var(--white);
+    transform: translateY(-2px);
+    /* translateY(-2px) = move 2px UP — float effect */
+    box-shadow: var(--shadow-md);
+  }
+
+  /* SECONDARY BUTTON */
+  .btn-secondary {
+    background: rgba(255,255,255,0.12);
+    color: var(--white);
+    padding: 11px 22px;
+    border-radius: 40px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.2);
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-secondary:hover {
+    background: rgba(255,255,255,0.2);
+    transform: translateY(-2px);
+  }
+
+  /* Weather widget in hero */
+  .hero-weather {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: var(--radius-md);
+    padding: 20px 24px;
+    text-align: center;
+    min-width: 160px;
+    backdrop-filter: blur(10px);
+    /* backdrop-filter: blur = blurs whatever is behind this element */
+  }
+
+  .weather-temp {
+    font-family: 'Playfair Display', serif;
+    font-size: 42px;
+    font-weight: 700;
+    color: var(--white);
+    line-height: 1;
+  }
+
+  .weather-desc {
+    font-size: 12px;
+    color: rgba(255,255,255,0.6);
+    margin-top: 6px;
+  }
+
+  .weather-location {
+    font-size: 11px;
+    color: var(--green-light);
+    margin-top: 4px;
+    font-weight: 600;
+  }
+
+  /* ========================================
+     STATS CARDS ROW
+  ======================================== */
+  .stats-row {
+    display: grid;
+    /*
+      display: grid = CSS Grid layout
+      Great for equal-width columns
+    */
+    grid-template-columns: repeat(4, 1fr);
+    /*
+      repeat(4, 1fr) = 4 columns, each takes 1 fraction of space
+      1fr = "1 equal part" — all 4 columns are same width
+    */
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  /* On tablet: 2 columns */
+  @media (max-width: 1024px) {
+    .stats-row {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  /* On mobile: 2 columns still but smaller */
+  @media (max-width: 500px) {
+    .stats-row {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+  }
+
+  .stat-card {
+    background: var(--white);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid rgba(0,0,0,0.04);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+  }
+
+  /* Colored top border for each card */
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--card-color, var(--green-light));
+    /* var(--card-color, var(--green-light)) = 
+       use --card-color variable, and if not set, use --green-light as fallback */
+  }
+
+  .stat-icon-wrap {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    margin-bottom: 14px;
+    background: var(--icon-bg, var(--green-pale));
+    /* same pattern — use variable or fallback */
+  }
+
+  .stat-number {
+    font-family: 'Playfair Display', serif;
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--text-dark);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .stat-label {
+    font-size: 12px;
+    color: var(--text-light);
+    font-weight: 500;
+  }
+
+  .stat-change {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 6px;
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+
+  .stat-change.up {
+    background: #e8f5e9;
+    color: #2e7d32;
+  }
+
+  .stat-change.down {
+    background: #ffebee;
+    color: #c62828;
+  }
+
+  /* ========================================
+     SECTION HEADING
+  ======================================== */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-dark);
+  }
+
+  .section-title span {
+    font-size: 13px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 400;
+    color: var(--text-light);
+    margin-left: 8px;
+  }
+
+  .see-all {
+    font-size: 12px;
+    color: var(--green-mid);
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: gap 0.2s;
+    border: none;
+    background: none;
+  }
+
+  .see-all:hover {
+    gap: 8px; /* arrow moves right on hover */
+  }
+
+  /* ========================================
+     MODULE CARDS GRID
+  ======================================== */
+  .modules-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  @media (max-width: 1100px) {
+    .modules-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 600px) {
+    .modules-grid {
+      grid-template-columns: 1fr;
+      /* 1fr alone = full width single column */
+    }
+  }
+
+  .module-card {
+    background: var(--white);
+    border-radius: var(--radius-md);
+    padding: 22px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid rgba(0,0,0,0.04);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .module-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--hover-color, var(--green-light));
+  }
+
+  /* Colored background blob in top right corner */
+  .module-card::after {
+    content: '';
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: var(--card-blob, rgba(82,183,136,0.08));
+    top: -20px;
+    right: -20px;
+    transition: all 0.3s ease;
+  }
+
+  .module-card:hover::after {
+    transform: scale(1.5);
+    /* make the blob grow on hover */
+  }
+
+  .module-card-icon {
+    font-size: 32px;
+    margin-bottom: 14px;
+    display: block;
+    position: relative;
+    z-index: 1; /* above the ::after blob */
+  }
+
+  .module-card-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 6px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .module-card-desc {
+    font-size: 12.5px;
+    color: var(--text-mid);
+    line-height: 1.6;
+    margin-bottom: 14px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .module-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    z-index: 1;
+  }
+
+  .module-tag {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: var(--tag-bg, var(--green-pale));
+    color: var(--tag-color, var(--green-mid));
+  }
+
+  .module-arrow {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--arrow-bg, var(--green-pale));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    transition: all 0.2s ease;
+  }
+
+  .module-card:hover .module-arrow {
+    background: var(--green-light);
+    color: white;
+    transform: rotate(-45deg);
+    /* rotate on hover = fun arrow animation */
+  }
+
+  /* ========================================
+     BOTTOM ROW — Alerts + Quick Actions
+  ======================================== */
+  .bottom-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  @media (max-width: 768px) {
+    .bottom-row {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .card-box {
+    background: var(--white);
+    border-radius: var(--radius-md);
+    padding: 22px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid rgba(0,0,0,0.04);
+  }
+
+  /* ALERT ITEMS */
+  .alert-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+
+  .alert-item:last-child {
+    /* :last-child = select the last element among siblings */
+    border-bottom: none; /* no border on the last item */
+  }
+
+  .alert-item:hover {
+    padding-left: 6px; /* subtle indent on hover */
+  }
+
+  .alert-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-top: 4px;
+    flex-shrink: 0;
+    animation: pulse 2s infinite;
+    /* pulse animation defined below */
+  }
+
+  /* PULSE ANIMATION — the alert dot blinks */
+  @keyframes pulse {
+    /*
+      @keyframes = define an animation
+      'pulse' = name of the animation (use this name in animation property)
+      0% = start of animation
+      50% = middle
+      100% = end
+    */
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.5;
+      transform: scale(0.8);
+    }
+  }
+
+  .alert-text {
+    flex: 1;
+  }
+
+  .alert-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 2px;
+  }
+
+  .alert-sub {
+    font-size: 11px;
+    color: var(--text-light);
+  }
+
+  .alert-time {
+    font-size: 10px;
+    color: var(--text-light);
+    white-space: nowrap;
+    /* white-space: nowrap = don't wrap to next line */
+  }
+
+  /* QUICK ACTION BUTTONS */
+  .quick-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .quick-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(0,0,0,0.06);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: var(--cream);
+    text-align: center;
+  }
+
+  .quick-btn:hover {
+    background: var(--green-pale);
+    border-color: var(--green-light);
+    transform: scale(1.03);
+  }
+
+  .quick-btn-icon {
+    font-size: 24px;
+  }
+
+  .quick-btn-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-mid);
+  }
+
+  /* ========================================
+     OVERLAY — dark background when sidebar
+     is open on mobile
+  ======================================== */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    /* inset: 0 = top:0, right:0, bottom:0, left:0 (all sides) */
+    background: rgba(0,0,0,0.5);
+    z-index: 90; /* below sidebar (100) but above content */
+  }
+
+  .overlay.show {
+    display: block;
+  }
+
+  /* ========================================
+     PAGE ANIMATIONS — fade in on load
+  ======================================== */
+  @keyframes fadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+      /* start invisible and 20px below */
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+      /* end visible at normal position */
+    }
+  }
+
+  .fade-up {
+    animation: fadeUp 0.5s ease both;
+    /* both = apply animation styles before AND after it plays */
+  }
+
+  /* Staggered delays — each element appears slightly after previous */
+  .delay-1 { animation-delay: 0.1s; }
+  .delay-2 { animation-delay: 0.2s; }
+  .delay-3 { animation-delay: 0.3s; }
+  .delay-4 { animation-delay: 0.4s; }
+  .delay-5 { animation-delay: 0.5s; }
+  .delay-6 { animation-delay: 0.6s; }
+  .delay-7 { animation-delay: 0.7s; }
+
+  /* ========================================
+     LOADING SCREEN
+  ======================================== */
+  .loader {
+    position: fixed;
+    inset: 0;
+    background: var(--green-dark);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    transition: opacity 0.5s ease;
+    gap: 16px;
+  }
+
+  .loader.hidden {
+    opacity: 0;
+    pointer-events: none;
+    /* pointer-events: none = clicks pass through this element */
+  }
+
+  .loader-icon {
+    font-size: 48px;
+    animation: bounce 1s ease infinite;
+  }
+
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  .loader-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 24px;
+    color: var(--white);
+    font-weight: 700;
+  }
+
+  .loader-sub {
+    font-size: 13px;
+    color: rgba(255,255,255,0.5);
+  }
+
+  .loader-bar {
+    width: 200px;
+    height: 3px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+
+  .loader-fill {
+    height: 100%;
+    background: var(--green-light);
+    border-radius: 2px;
+    animation: load 1.5s ease forwards;
+    /* forwards = stay at end state after animation finishes */
+  }
+
+  @keyframes load {
+    from { width: 0%; }
+    to   { width: 100%; }
+  }
+
+  /* ========================================
+     TOAST NOTIFICATION
+  ======================================== */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--green-dark);
+    color: white;
+    padding: 12px 20px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: var(--shadow-lg);
+    transform: translateY(80px);
+    /* start below screen */
+    opacity: 0;
+    transition: all 0.3s ease;
+    max-width: 300px;
+  }
+
+  .toast.show {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  </style>
+</head>
+
+<body>
+
+<!-- ==========================================
+     LOADING SCREEN
+     Shows while page is loading
+========================================== -->
+<div class="loader" id="loader">
+  <div class="loader-icon">🌾</div>
+  <div class="loader-text">GramShakti</div>
+  <div class="loader-sub">Loading your village dashboard...</div>
+  <div class="loader-bar">
+    <div class="loader-fill"></div>
+  </div>
+</div>
+
+<!-- ==========================================
+     OVERLAY — for mobile sidebar
+========================================== -->
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+<!--
+  onclick="closeSidebar()" = when user clicks the dark overlay,
+  call the closeSidebar() JavaScript function
+-->
+
+<!-- ==========================================
+     TOAST NOTIFICATION
+========================================== -->
+<div class="toast" id="toast">
+  <span id="toast-icon">✅</span>
+  <span id="toast-msg">Welcome to GramShakti!</span>
+</div>
+
+<!-- ==========================================
+     SIDEBAR — Left navigation
+========================================== -->
+<aside class="sidebar" id="sidebar">
+  <!--
+    <aside> = semantic HTML for side content like navigation
+    id="sidebar" = unique ID, used by JavaScript to find this element
+  -->
+
+  <!-- Logo -->
+  <div class="sidebar-logo">
+    <span class="logo-icon">🌾</span>
+    <div class="logo-title">Gram<span>Shakti</span></div>
+    <div class="logo-tagline">Village Super App</div>
+  </div>
+
+  <!-- Navigation links -->
+  <nav class="sidebar-nav">
+    <!--
+      <nav> = semantic HTML for navigation
+      Screen readers and search engines understand this is navigation
+    -->
+
+    <div class="nav-section-title">Main Menu</div>
+
+    <!--
+      data-page="home" = custom data attribute
+      We can read this with JavaScript using element.dataset.page
+      Used to know which page to show when this is clicked
+    -->
+    <div class="nav-item active" data-page="home" onclick="navigate(this)">
+      <span class="nav-icon">🏠</span>
+      <span>Dashboard</span>
+    </div>
+
+    <div class="nav-section-title">Farming</div>
+
+    <div class="nav-item" data-page="crop" onclick="navigate(this)">
+      <span class="nav-icon">🌿</span>
+      <span>Crop Doctor</span>
+      <span class="nav-badge">AI</span>
+    </div>
+
+    <div class="nav-item" data-page="weather" onclick="navigate(this)">
+      <span class="nav-icon">⛅</span>
+      <span>Farm Weather</span>
+    </div>
+
+    <div class="nav-item" data-page="mandi" onclick="navigate(this)">
+      <span class="nav-icon">📊</span>
+      <span>Mandi Prices</span>
+      <span class="nav-badge">Live</span>
+    </div>
+
+    <div class="nav-item" data-page="market" onclick="navigate(this)">
+      <span class="nav-icon">🛒</span>
+      <span>Farm Market</span>
+    </div>
+
+    <div class="nav-section-title">Government</div>
+
+    <div class="nav-item" data-page="scheme" onclick="navigate(this)">
+      <span class="nav-icon">🏛️</span>
+      <span>Scheme Finder</span>
+      <span class="nav-badge">New</span>
+    </div>
+
+    <div class="nav-item" data-page="loan" onclick="navigate(this)">
+      <span class="nav-icon">💳</span>
+      <span>Kisan Loans</span>
+    </div>
+
+    <div class="nav-section-title">Village Life</div>
+
+    <div class="nav-item" data-page="health" onclick="navigate(this)">
+      <span class="nav-icon">🏥</span>
+      <span>Health & Doctor</span>
+    </div>
+
+    <div class="nav-item" data-page="sos" onclick="navigate(this)">
+      <span class="nav-icon">🆘</span>
+      <span>Emergency SOS</span>
+    </div>
+
+    <div class="nav-item" data-page="jobs" onclick="navigate(this)">
+      <span class="nav-icon">💼</span>
+      <span>Jobs & MNREGA</span>
+    </div>
+  </nav>
+
+  <!-- User info at bottom of sidebar -->
+  <div class="sidebar-bottom">
+    <div class="user-card">
+      <div class="user-avatar">👨‍🌾</div>
+      <div>
+        <div class="user-name">Raju Patil</div>
+        <div class="user-village">Nandgaon Village</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- ==========================================
+     MAIN CONTENT
+========================================== -->
+<main class="main">
+  <!-- <main> = semantic HTML for main content of the page -->
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+
+      <!-- Hamburger button (only shows on mobile) -->
+      <button class="hamburger" onclick="openSidebar()" aria-label="Open Menu">
+        <!-- aria-label = accessibility label for screen readers -->
+        <div class="ham-line"></div>
+        <div class="ham-line"></div>
+        <div class="ham-line"></div>
+      </button>
+
+      <div>
+        <div class="page-title" id="pageTitle">Dashboard</div>
+        <div class="page-subtitle" id="pageSubtitle">Welcome back, Raju! 🌤️ Good morning</div>
+      </div>
+    </div>
+
+    <div class="topbar-right">
+      <div class="search-box" onclick="showToast('🔍 Search coming in Week 3!', '🔍')">
+        <span>🔍</span>
+        <span>Search...</span>
+      </div>
+      <div class="icon-btn" onclick="showToast('🌐 Language: हिंदी / English', '🌐')">
+        🌐
+      </div>
+      <div class="icon-btn" onclick="showToast('🔔 You have 3 new alerts!', '🔔')">
+        🔔
+        <div class="notif-dot"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE CONTENT -->
+  <div class="content">
+
+    <!-- HERO BANNER -->
+    <div class="hero-banner fade-up">
+      <div class="hero-content">
+        <div class="hero-text">
+          <h1>Namaste, <span>Raju Ji! 🙏</span></h1>
+          <p>Your complete village dashboard. Check crop prices, weather, govt schemes, and get help — all in one place.</p>
+          <div class="hero-actions">
+            <button class="btn-primary" onclick="navigate(document.querySelector('[data-page=mandi]'))">
+              📊 Check Today's Prices
+            </button>
+            <button class="btn-secondary" onclick="navigate(document.querySelector('[data-page=scheme]'))">
+              🏛️ Find Schemes
+            </button>
+          </div>
+        </div>
+        <div class="hero-weather" id="weatherWidget">
+          <div style="font-size:36px; margin-bottom:6px">⛅</div>
+          <div class="weather-temp" id="temp">28°</div>
+          <div class="weather-desc">Partly Cloudy</div>
+          <div class="weather-location">📍 Nandgaon, MH</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATS CARDS -->
+    <div class="stats-row">
+
+      <div class="stat-card fade-up delay-1"
+           style="--card-color: #52b788; --icon-bg: #d8f3dc;"
+           onclick="navigate(document.querySelector('[data-page=mandi]'))">
+        <div class="stat-icon-wrap">🌾</div>
+        <div class="stat-number" data-target="1240">0</div>
+        <!--
+          data-target="1240" = the number we want to count UP to
+          JavaScript reads this and animates from 0 to 1240
+        -->
+        <div class="stat-label">Wheat Price (₹/qtl)</div>
+        <div class="stat-change up">↑ 3.2% today</div>
+      </div>
+
+      <div class="stat-card fade-up delay-2"
+           style="--card-color: #f4a261; --icon-bg: #fff3e0;"
+           onclick="navigate(document.querySelector('[data-page=scheme]'))">
+        <div class="stat-icon-wrap">🏛️</div>
+        <div class="stat-number" data-target="12">0</div>
+        <div class="stat-label">Schemes You Qualify</div>
+        <div class="stat-change up">↑ 2 new this month</div>
+      </div>
+
+      <div class="stat-card fade-up delay-3"
+           style="--card-color: #4cc9f0; --icon-bg: #e3f8ff;"
+           onclick="showToast('💧 Next rain in 2 days!', '💧')">
+        <div class="stat-icon-wrap">🌧️</div>
+        <div class="stat-number" data-target="2">0</div>
+        <div class="stat-label">Days Until Rain</div>
+        <div class="stat-change up">→ Light shower</div>
+      </div>
+
+      <div class="stat-card fade-up delay-4"
+           style="--card-color: #e63946; --icon-bg: #ffebee;"
+           onclick="navigate(document.querySelector('[data-page=health]'))">
+        <div class="stat-icon-wrap">🏥</div>
+        <div class="stat-number" data-target="3">0</div>
+        <div class="stat-label">Alerts For You</div>
+        <div class="stat-change down">⚠️ Check now</div>
+      </div>
+
+    </div>
+
+    <!-- MODULE CARDS -->
+    <div class="section-header fade-up delay-3">
+      <div class="section-title">All Modules <span>— tap to open</span></div>
+      <button class="see-all" onclick="showToast('📱 All 10 modules coming soon!', '📱')">
+        View all →
+      </button>
+    </div>
+
+    <div class="modules-grid">
+
+      <div class="module-card fade-up delay-3"
+           style="--hover-color:#52b788; --card-blob:rgba(82,183,136,0.1);"
+           onclick="navigate(document.querySelector('[data-page=crop]'))">
+        <span class="module-card-icon">🌿</span>
+        <div class="module-card-title">Crop Doctor</div>
+        <div class="module-card-desc">Take a photo of your sick crop leaf. AI will instantly tell you the disease and exact cure.</div>
+        <div class="module-card-footer">
+          <span class="module-tag" style="background:#d8f3dc;color:#1a3c2e">AI Powered</span>
+          <div class="module-arrow" style="--arrow-bg:#d8f3dc">→</div>
+        </div>
+      </div>
+
+      <div class="module-card fade-up delay-3"
+           style="--hover-color:#4cc9f0; --card-blob:rgba(76,201,240,0.1);"
+           onclick="navigate(document.querySelector('[data-page=weather]'))">
+        <span class="module-card-icon">⛅</span>
+        <div class="module-card-title">Farm Weather</div>
+        <div class="module-card-desc">Exact weather for your village. Best sowing dates, rain alerts, frost warnings.</div>
+        <div class="module-card-footer">
+          <span class="module-tag" style="background:#e3f8ff;color:#0a4d6e">7-Day Forecast</span>
+          <div class="module-arrow" style="--arrow-bg:#e3f8ff">→</div>
+        </div>
+      </div>
+
+      <div class="module-card fade-up delay-4"
+           style="--hover-color:#f4a261; --card-blob:rgba(244,162,97,0.1);"
+           onclick="navigate(document.querySelector('[data-page=mandi]'))">
+        <span class="module-card-icon">📊</span>
+        <div class="module-card-title">Live Mandi Prices</div>
+        <div class="module-card-desc">Real-time crop prices from all mandis near you. Know the best place to sell.</div>
+        <div class="module-card-footer">
+          <span class="module-tag" style="background:#fff3e0;color:#7c4800">Live Data</span>
+          <div class="module-arrow" style="--arrow-bg:#fff3e0">→</div>
+        </div>
+      </div>
+
+      <div class="module-card fade-up delay-4"
+           style="--hover-color:#7b2d8b; --card-blob:rgba(123,45,139,0.08);"
+           onclick="navigate(document.querySelector('[data-page=scheme]'))">
+        <span class="module-card-icon">🏛️</span>
+        <div class="module-card-title">Govt Scheme Finder</div>
+        <div class="module-card-desc">Enter your details once. See every central and state scheme you qualify for.</div>
+        <div class="module-card-footer">
+          <span class="module-tag" style="background:#f3e8ff;color:#5b21b6">40+ Schemes</span>
+          <div class="module-arrow" style="--arrow-bg:#f3e8ff">→</div>
+        </div>
+      </div>
+
+      <div class="module-card fade-up delay-5"
+           style="--hover-color:#e63946; --card-blob:rgba(230,57,70,0.08);"
+           onclick="navigate(document.querySelector('[data-page=sos]'))">
+        <span class="module-card-icon">🆘</span>
+        <div class="module-card-title">Emergency SOS</div>
+        <div class="module-card-desc">One tap sends your GPS location to police, hospital, and family contacts instantly.</div>
+        <div class="module-card-footer">
+          <span class="module-tag" style="background:#ffebee;color:#b71c1c">Life Saving</span>
+          <div class="module-arrow" style="--arrow-bg:#ffebee">→</div>
+        </div>
+      </div>
+
+      <div class="module-card fade-up delay-5"
+           style="--hover-color:#0096c7; --card-blob:rgba(0,150,199,0.08);"
+           onclick="navigate(document.querySelector('[data-page=health]'))">
+        <span class="module-card-icon">🏥</span>
+        <div class="module-card-title">Village Health</div>
+        <div class="module-card-desc">Check symptoms in Hindi. Book video doctor. Find nearest PHC. Medicine reminders.</div>
+        <div class="module-card-footer">
+          <span class="module-tag" style="background:#e0f7fa;color:#00607a">Telemedicine</span>
+          <div class="module-arrow" style="--arrow-bg:#e0f7fa">→</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- BOTTOM ROW -->
+    <div class="bottom-row fade-up delay-5">
+
+      <!-- ALERTS PANEL -->
+      <div class="card-box">
+        <div class="section-header" style="margin-bottom:12px">
+          <div class="section-title" style="font-size:15px">Recent Alerts</div>
+          <span style="font-size:11px;background:#ffebee;color:#c62828;padding:3px 8px;border-radius:20px;font-weight:600">3 new</span>
+        </div>
+
+        <div class="alert-item" onclick="showToast('🌧️ Rain alert: Light shower in 2 days', '🌧️')">
+          <div class="alert-dot" style="background:#4cc9f0"></div>
+          <div class="alert-text">
+            <div class="alert-title">Rain Alert — Light Shower</div>
+            <div class="alert-sub">Expected Thursday — delay irrigation</div>
+          </div>
+          <div class="alert-time">2 days</div>
+        </div>
+
+        <div class="alert-item" onclick="showToast('📊 Tomato prices up ₹80/qtl today!', '📊')">
+          <div class="alert-dot" style="background:#52b788"></div>
+          <div class="alert-text">
+            <div class="alert-title">Tomato Price Up ₹80/qtl</div>
+            <div class="alert-sub">Nashik mandi — good time to sell</div>
+          </div>
+          <div class="alert-time">1 hr ago</div>
+        </div>
+
+        <div class="alert-item" onclick="showToast('🏛️ PM-KISAN: ₹2000 installment due!', '🏛️')">
+          <div class="alert-dot" style="background:#f4a261"></div>
+          <div class="alert-text">
+            <div class="alert-title">PM-KISAN Installment Due</div>
+            <div class="alert-sub">₹2000 — verify Aadhaar to receive</div>
+          </div>
+          <div class="alert-time">Today</div>
+        </div>
+
+        <div class="alert-item" onclick="showToast('🌿 Possible early blight on tomatoes', '🌿')">
+          <div class="alert-dot" style="background:#e63946"></div>
+          <div class="alert-text">
+            <div class="alert-title">Crop Disease Warning</div>
+            <div class="alert-sub">Early blight risk high this week</div>
+          </div>
+          <div class="alert-time">New</div>
+        </div>
+
+      </div>
+
+      <!-- QUICK ACTIONS -->
+      <div class="card-box">
+        <div class="section-header" style="margin-bottom:16px">
+          <div class="section-title" style="font-size:15px">Quick Actions</div>
+        </div>
+        <div class="quick-actions">
+          <div class="quick-btn" onclick="navigate(document.querySelector('[data-page=crop]'))">
+            <span class="quick-btn-icon">📸</span>
+            <span class="quick-btn-label">Scan Crop Disease</span>
+          </div>
+          <div class="quick-btn" onclick="navigate(document.querySelector('[data-page=mandi]'))">
+            <span class="quick-btn-icon">💰</span>
+            <span class="quick-btn-label">Check Prices</span>
+          </div>
+          <div class="quick-btn" onclick="navigate(document.querySelector('[data-page=scheme]'))">
+            <span class="quick-btn-icon">📋</span>
+            <span class="quick-btn-label">Apply Scheme</span>
+          </div>
+          <div class="quick-btn" onclick="navigate(document.querySelector('[data-page=sos]'))">
+            <span class="quick-btn-icon">🆘</span>
+            <span class="quick-btn-label">Emergency SOS</span>
+          </div>
+          <div class="quick-btn" onclick="navigate(document.querySelector('[data-page=health]'))">
+            <span class="quick-btn-icon">👨‍⚕️</span>
+            <span class="quick-btn-label">See a Doctor</span>
+          </div>
+          <div class="quick-btn" onclick="navigate(document.querySelector('[data-page=loan]'))">
+            <span class="quick-btn-icon">🏦</span>
+            <span class="quick-btn-label">Get a Loan</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div><!-- end .content -->
+</main>
+
+<!-- ==========================================
+     JAVASCRIPT — The Brain of the App
+     All logic goes here, at the bottom of body
+     (Loading JS last = page shows faster)
+========================================== -->
+<script>
+
+// ============================================================
+// SECTION 1: PAGE LOAD — Hide loader after 1.8 seconds
+// ============================================================
+
+window.addEventListener('load', function() {
+  /*
+    window.addEventListener('load', function) = 
+    "When the entire page finishes loading, run this function"
+    'load' event fires after ALL images, fonts, CSS are loaded
+  */
+
+  setTimeout(function() {
+    /*
+      setTimeout(function, milliseconds) =
+      Wait X milliseconds then run the function
+      1800 = 1.8 seconds
+    */
+    var loader = document.getElementById('loader');
+    /*
+      document.getElementById('loader') =
+      Find the HTML element with id="loader"
+      Store it in a variable called 'loader'
+    */
+
+    loader.classList.add('hidden');
+    /*
+      classList.add('hidden') = add the class "hidden" to the element
+      Our CSS has .loader.hidden { opacity: 0 } which fades it out
+    */
+
+    // Show welcome toast after loader hides
+    setTimeout(function() {
+      showToast('🙏 Namaste! Welcome to GramShakti', '🌾');
+    }, 300);
+
+  }, 1800);
+});
+
+
+// ============================================================
+// SECTION 2: COUNTING NUMBER ANIMATION
+// This makes numbers count up from 0 to their target value
+// ============================================================
+
+function animateNumbers() {
+  /*
+    function animateNumbers() = defines a reusable block of code
+    We can call this function by writing: animateNumbers()
+  */
+
+  var numberElements = document.querySelectorAll('[data-target]');
+  /*
+    document.querySelectorAll('[data-target]') = 
+    Find ALL elements that have a data-target attribute
+    Returns a list (NodeList) of all matching elements
+  */
+
+  numberElements.forEach(function(element) {
+    /*
+      .forEach(function(element)) = loop through each element
+      'element' = current element in the loop
+    */
+
+    var target = parseInt(element.getAttribute('data-target'));
+    /*
+      getAttribute('data-target') = get the value of data-target attribute
+      For <div data-target="1240"> this returns the string "1240"
+      parseInt() = convert string "1240" to number 1240
+    */
+
+    var current = 0;   // start counting from 0
+    var duration = 1500; // count for 1500ms = 1.5 seconds
+    var stepTime = 30;   // update every 30 milliseconds
+
+    var steps = duration / stepTime; // total steps = 1500/30 = 50 steps
+    var increment = target / steps;  // how much to add each step
+
+    var timer = setInterval(function() {
+      /*
+        setInterval(function, ms) = run function every X milliseconds
+        This creates the counting animation
+      */
+      current += increment; // add increment to current value
+
+      if (current >= target) {
+        // If we reached or passed the target
+        current = target;   // set exactly to target
+        clearInterval(timer); // STOP the interval
+      }
+
+      element.textContent = Math.round(current).toLocaleString();
+      /*
+        .textContent = set the text inside the element
+        Math.round() = round 1239.7 to 1240 (no decimals)
+        .toLocaleString() = add comma for thousands: 1240 → "1,240"
+      */
+    }, stepTime);
+  });
+}
+
+// Start counting after loader hides
+setTimeout(animateNumbers, 2000);
+/*
+  Wait 2 seconds (after loader disappears), then animate numbers
+*/
+
+
+// ============================================================
+// SECTION 3: SIDEBAR NAVIGATION
+// ============================================================
+
+function navigate(clickedItem) {
+  /*
+    This function runs when any nav-item is clicked
+    clickedItem = the element that was clicked
+  */
+
+  if (!clickedItem) return;
+  /*
+    if (!clickedItem) return = safety check
+    If clickedItem is null/undefined, stop the function
+    ! = NOT operator. !clickedItem = "if clickedItem is falsy"
+  */
+
+  // Remove 'active' class from ALL nav items
+  var allNavItems = document.querySelectorAll('.nav-item');
+  allNavItems.forEach(function(item) {
+    item.classList.remove('active');
+    /*
+      classList.remove('active') = remove the 'active' class
+      This un-highlights previously active nav item
+    */
+  });
+
+  // Add 'active' class to the clicked item
+  clickedItem.classList.add('active');
+
+  // Get the page name from data-page attribute
+  var pageName = clickedItem.getAttribute('data-page');
+  /*
+    For <div data-page="mandi">, this returns "mandi"
+  */
+
+  // Update the topbar title
+  var titles = {
+    /*
+      This is a JavaScript OBJECT = key: value pairs
+      Like a dictionary — we look up page name, get its title
+    */
+    home:    { title: 'Dashboard',        sub: 'Welcome back, Raju! 🌤️ Good morning' },
+    crop:    { title: 'Crop Doctor',      sub: 'AI-powered plant disease detection' },
+    weather: { title: 'Farm Weather',     sub: 'Hyperlocal forecast for your village' },
+    mandi:   { title: 'Mandi Prices',     sub: 'Live crop prices from nearby mandis' },
+    market:  { title: 'Farm Market',      sub: 'Sell directly to buyers near you' },
+    scheme:  { title: 'Scheme Finder',    sub: 'Government schemes you qualify for' },
+    loan:    { title: 'Kisan Loans',      sub: 'Compare farm loans from all banks' },
+    health:  { title: 'Village Health',   sub: 'Doctors, medicines, and nearby hospitals' },
+    sos:     { title: 'Emergency SOS',    sub: 'One tap sends your location to help' },
+    jobs:    { title: 'Jobs & MNREGA',    sub: 'Find work near your village' },
+  };
+
+  var pageInfo = titles[pageName] || titles['home'];
+  /*
+    titles[pageName] = look up pageName in our titles object
+    If pageName is "mandi", returns { title: 'Mandi Prices', sub: '...' }
+    || titles['home'] = if not found, use home as default
+  */
+
+  document.getElementById('pageTitle').textContent    = pageInfo.title;
+  document.getElementById('pageSubtitle').textContent = pageInfo.sub;
+  /*
+    .textContent = sets the text inside an element
+    We update the topbar title to match the selected page
+  */
+
+  // Show a toast telling user this module is coming
+  if (pageName !== 'home') {
+    /*
+      !== = "strict not equal" — only true if they are different
+      We don't show toast for home page
+    */
+    var moduleNames = {
+      crop:    'Crop Doctor 🌿',    weather: 'Farm Weather ⛅',
+      mandi:   'Mandi Prices 📊',   market:  'Farm Market 🛒',
+      scheme:  'Scheme Finder 🏛️',  loan:    'Kisan Loans 💳',
+      health:  'Village Health 🏥', sos:     'Emergency SOS 🆘',
+      jobs:    'Jobs Board 💼',
+    };
+    showToast(
+      (moduleNames[pageName] || pageName) + ' — coming in Week ' + getWeekForModule(pageName) + '!',
+      '🚧'
+    );
+  }
+
+  // Close sidebar on mobile after navigation
+  closeSidebar();
+}
+
+
+function getWeekForModule(page) {
+  /* Returns which week we'll build this module */
+  var weeks = {
+    mandi: 2, weather: 3, scheme: 4, crop: 5,
+    sos: 6, health: 6, market: 7, loan: 7, jobs: 8
+  };
+  return weeks[page] || 3;
+}
+
+
+// ============================================================
+// SECTION 4: MOBILE SIDEBAR OPEN/CLOSE
+// ============================================================
+
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  /*
+    Add 'open' class to sidebar
+    Our CSS: .sidebar.open { transform: translateX(0) }
+    This slides the sidebar into view
+  */
+  document.getElementById('overlay').classList.add('show');
+  /*
+    Show the dark overlay behind the sidebar
+  */
+  document.body.style.overflow = 'hidden';
+  /*
+    overflow: hidden on body = prevent page from scrolling
+    when sidebar is open on mobile
+  */
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+  document.body.style.overflow = '';
+  /* overflow: '' = reset to default (removes the inline style) */
+}
+
+
+// ============================================================
+// SECTION 5: TOAST NOTIFICATION
+// Shows a small popup message at bottom right
+// ============================================================
+
+var toastTimer = null;
+/* 
+  var toastTimer = null = create a variable to store the timer
+  We need this to cancel previous toast if a new one comes quickly
+*/
+
+function showToast(message, icon) {
+  /*
+    message = the text to show
+    icon = the emoji to show on the left
+  */
+
+  var toast    = document.getElementById('toast');
+  var toastMsg = document.getElementById('toast-msg');
+  var toastIcon= document.getElementById('toast-icon');
+
+  toastMsg.textContent  = message;
+  toastIcon.textContent = icon || '✅';
+  /* icon || '✅' = use icon if provided, otherwise use ✅ */
+
+  toast.classList.add('show');
+  /* Add 'show' class = CSS animates toast sliding up */
+
+  // Cancel any existing timer (so toast doesn't hide too early)
+  if (toastTimer) {
+    clearTimeout(toastTimer);
+    /*
+      clearTimeout() = cancel a previously set setTimeout
+      Without this, if you show 2 toasts quickly,
+      the first timer might hide the second toast early
+    */
+  }
+
+  // Hide the toast after 3 seconds
+  toastTimer = setTimeout(function() {
+    toast.classList.remove('show');
+  }, 3000);
+}
+
+
+// ============================================================
+// SECTION 6: LIVE CLOCK — Updates time in subtitle
+// ============================================================
+
+function updateClock() {
+  var now = new Date();
+  /*
+    new Date() = creates a Date object with current date and time
+  */
+
+  var hours   = now.getHours();   /* 0 to 23 */
+  var minutes = now.getMinutes(); /* 0 to 59 */
+
+  /* Determine time of day greeting */
+  var greeting;
+  if (hours < 12) {
+    greeting = 'Good morning';
+  } else if (hours < 17) {
+    greeting = 'Good afternoon';
+  } else {
+    greeting = 'Good evening';
+  }
+
+  /* Format: "Good morning • 9:05 AM" */
+  var ampm    = hours >= 12 ? 'PM' : 'AM';
+  /*
+    condition ? value_if_true : value_if_false
+    This is called a TERNARY OPERATOR — short if/else
+  */
+  var hour12  = hours % 12 || 12;
+  /* % = modulo (remainder). 13 % 12 = 1. 0 % 12 = 0, but we want 12 */
+  var minStr  = minutes < 10 ? '0' + minutes : minutes;
+  /* Add leading zero: 9 → "09", 10 → "10" */
+
+  var subtitle = document.getElementById('pageSubtitle');
+  /* Only update if we're on the home page */
+  if (subtitle && subtitle.textContent.includes('morning') ||
+      subtitle && subtitle.textContent.includes('afternoon') ||
+      subtitle && subtitle.textContent.includes('evening')) {
+    subtitle.textContent =
+      'Welcome back, Raju! 🌤️ ' + greeting + ' • ' + hour12 + ':' + minStr + ' ' + ampm;
+  }
+}
+
+updateClock();              /* run once immediately */
+setInterval(updateClock, 60000); /* then update every 60 seconds */
+
+
+// ============================================================
+// SECTION 7: SIMULATE LIVE WEATHER UPDATE
+// ============================================================
+
+var weatherData = [
+  { temp: '28°', icon: '⛅', desc: 'Partly Cloudy',  color: '#ffd166' },
+  { temp: '31°', icon: '☀️',  desc: 'Hot & Sunny',    color: '#ef9f27' },
+  { temp: '26°', icon: '🌧️', desc: 'Light Drizzle',  color: '#4cc9f0' },
+  { temp: '24°', icon: '🌤️', desc: 'Mostly Clear',   color: '#52b788' },
+];
+var weatherIndex = 0;
+
+function updateWeather() {
+  weatherIndex = (weatherIndex + 1) % weatherData.length;
+  /*
+    % weatherData.length = wrap around back to 0 after last item
+    weatherData.length = 4
+    0 → 1 → 2 → 3 → 0 → 1 → ... (cycles)
+  */
+  var w = weatherData[weatherIndex];
+
+  document.getElementById('temp').textContent = w.temp;
+  document.querySelector('.weather-desc').textContent = w.desc;
+  document.querySelector('.weather-desc').previousElementSibling.textContent = w.icon;
+  /*
+    .previousElementSibling = the element just before this one in HTML
+  */
+}
+
+setInterval(updateWeather, 5000); /* Change weather every 5 seconds */
+
+</script>
+
+</body>
+</html>
