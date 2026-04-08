@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Emergency SOS — GramShakti</title>
+
+  <!--
+    PWA META TAGS
+    These tell the browser "this is an installable app"
+  -->
+  <meta name="theme-color" content="#1a3c2e"/>
+  <!--
+    theme-color = color of the browser bar on Android
+    When installed as PWA, this becomes the app's accent color
+  -->
+
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <meta name="apple-mobile-web-app-title" content="GramShakti"/>
+  <!--
+    apple-mobile-web-app = iOS specific PWA settings
+    Makes it work when "Add to Home Screen" on iPhone
+  -->
+
+  <link rel="manifest" href="manifest.json"/>
+  <!--
+    manifest.json = the PWA config file
+    Tells the phone: app name, icon, colors, start URL
+    We create this file separately (shown in JS section)
+  -->
+
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+
+  <style>
+  :root {
+    --green-dark:  #1a3c2e;
+    --green-mid:   #2d6a4f;
+    --green-light: #52b788;
+    --green-pale:  #d8f3dc;
+    --gold:        #f4a261;
+    --cream:       #fefae0;
+    --white:       #ffffff;
+    --text-dark:   #1b1b1b;
+    --text-mid:    #4a4a4a;
+    --text-light:  #888888;
+    --danger:      #e63946;
+    --danger-dark: #c1121f;
+    --danger-pale: #ffebee;
+    --sky:         #4cc9f0;
+    --sidebar-w:   260px;
+    --radius-sm:   8px;
+    --radius-md:   14px;
+    --radius-lg:   20px;
+    --shadow-sm:   0 2px 8px rgba(0,0,0,0.07);
+    --shadow-md:   0 4px 20px rgba(0,0,0,0.12);
+    --shadow-lg:   0 8px 32px rgba(0,0,0,0.16);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family:'Plus Jakarta Sans',sans-serif;
+    background:var(--cream); color:var(--text-dark);
+    min-height:100vh; display:flex;
+  }
+
+  /* =============================================
+     SIDEBAR
+  ============================================= */
+  .sidebar {
+    width:var(--sidebar-w); min-height:100vh;
+    background:var(--green-dark);
+    display:flex; flex-direction:column;
+    position:fixed; top:0; left:0; z-index:100;
+    transition:transform 0.3s ease;
+  }
+  @media(max-width:768px){ .sidebar{ transform:translateX(-100%); } .sidebar.open{ transform:translateX(0); } }
+  .sidebar-logo { padding:28px 24px 20px; border-bottom:1px solid rgba(255,255,255,0.1); }
+  .logo-title { font-family:'Playfair Display',serif; font-size:22px; font-weight:800; color:var(--white); }
+  .logo-title span { color:var(--green-light); }
+  .logo-tag { font-size:11px; color:rgba(255,255,255,0.4); margin-top:3px; letter-spacing:.1em; text-transform:uppercase; }
+  .sidebar-nav { flex:1; padding:16px 12px; overflow-y:auto; }
+  .nav-label { font-size:10px; color:rgba(255,255,255,0.3); text-transform:uppercase; letter-spacing:.12em; padding:12px 12px 6px; }
+  .nav-item { display:flex; align-items:center; gap:12px; padding:11px 14px; border-radius:var(--radius-sm); color:rgba(255,255,255,0.65); cursor:pointer; transition:all 0.2s; margin-bottom:2px; font-size:13.5px; font-weight:500; text-decoration:none; }
+  .nav-item:hover { background:rgba(255,255,255,0.08); color:var(--white); transform:translateX(4px); }
+  .nav-item.active { background:var(--danger); color:var(--white); font-weight:600; }
+  .nav-badge { margin-left:auto; background:var(--gold); color:var(--green-dark); font-size:10px; font-weight:700; padding:2px 7px; border-radius:20px; }
+  .sidebar-bottom { padding:16px; border-top:1px solid rgba(255,255,255,0.1); }
+  .user-card { display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.07); padding:10px 12px; border-radius:var(--radius-sm); }
+  .user-avatar { width:36px; height:36px; border-radius:50%; background:var(--green-light); display:flex; align-items:center; justify-content:center; font-size:16px; }
+  .user-name { font-size:13px; font-weight:600; color:var(--white); }
+  .user-sub  { font-size:11px; color:rgba(255,255,255,0.4); }
+
+  /* =============================================
+     MAIN LAYOUT
+  ============================================= */
+  .main { flex:1; margin-left:var(--sidebar-w); display:flex; flex-direction:column; min-height:100vh; }
+  @media(max-width:768px){ .main{ margin-left:0; } }
+
+  .topbar { background:var(--white); padding:0 28px; height:68px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid rgba(0,0,0,0.06); box-shadow:var(--shadow-sm); position:sticky; top:0; z-index:50; gap:16px; }
+  .topbar-left { display:flex; align-items:center; gap:14px; }
+  .hamburger { display:none; flex-direction:column; gap:5px; cursor:pointer; padding:4px; background:none; border:none; }
+  @media(max-width:768px){ .hamburger{ display:flex; } }
+  .ham-line { width:22px; height:2px; background:var(--text-dark); border-radius:2px; }
+  .page-title { font-family:'Playfair Display',serif; font-size:20px; font-weight:700; }
+  .page-sub   { font-size:12px; color:var(--text-light); margin-top:1px; }
+  .topbar-right { display:flex; align-items:center; gap:10px; }
+  .gps-badge { display:flex; align-items:center; gap:6px; padding:6px 14px; border-radius:20px; font-size:12px; font-weight:600; }
+  .gps-on  { background:#e8f5e9; color:#2e7d32; }
+  .gps-off { background:#ffebee; color:#c62828; }
+  .gps-dot { width:7px; height:7px; border-radius:50%; background:currentColor; animation:blink 1.5s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  .content { flex:1; padding:28px; }
+  @media(max-width:768px){ .content{ padding:16px; } }
+
+  /* =============================================
+     BIG SOS BUTTON SECTION
+  ============================================= */
+  .sos-hero {
+    background:linear-gradient(135deg,#c1121f,#e63946);
+    border-radius:var(--radius-lg); padding:36px;
+    margin-bottom:24px; color:white;
+    text-align:center; position:relative; overflow:hidden;
+  }
+  .sos-hero::before {
+    content:''; position:absolute;
+    width:400px; height:400px; border-radius:50%;
+    background:rgba(255,255,255,0.05);
+    top:-200px; left:50%; transform:translateX(-50%);
+  }
+
+  .sos-hero-content { position:relative; z-index:1; }
+  .sos-hero h2 { font-family:'Playfair Display',serif; font-size:22px; font-weight:800; margin-bottom:8px; }
+  .sos-hero p  { font-size:13px; color:rgba(255,255,255,0.75); margin-bottom:28px; max-width:400px; margin-left:auto; margin-right:auto; line-height:1.6; }
+
+  /* THE BIG SOS BUTTON */
+  .sos-btn-wrap {
+    position:relative; display:inline-block; margin-bottom:24px;
+  }
+
+  /* Animated rings around the button */
+  .sos-ring {
+    position:absolute; border-radius:50%;
+    border:2px solid rgba(255,255,255,0.3);
+    animation:sosPulse 2s ease-out infinite;
+  }
+  .sos-ring-1 { width:160px; height:160px; top:-30px; left:-30px; animation-delay:0s; }
+  .sos-ring-2 { width:200px; height:200px; top:-50px; left:-50px; animation-delay:.4s; }
+  .sos-ring-3 { width:240px; height:240px; top:-70px; left:-70px; animation-delay:.8s; }
+
+  @keyframes sosPulse {
+    0%   { transform:scale(0.8); opacity:0.8; }
+    100% { transform:scale(1.3); opacity:0; }
+    /*
+      Starts slightly small and opaque
+      Grows and fades out
+      Creates a "ripple" expanding ring effect
+    */
+  }
+
+  .sos-btn {
+    width:100px; height:100px; border-radius:50%;
+    background:var(--white); color:var(--danger);
+    border:4px solid rgba(255,255,255,0.5);
+    font-size:14px; font-weight:800; cursor:pointer;
+    font-family:'Plus Jakarta Sans',sans-serif;
+    transition:all .15s ease;
+    position:relative; z-index:1;
+    box-shadow:0 0 0 6px rgba(255,255,255,0.15), var(--shadow-lg);
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:2px;
+    letter-spacing:.05em;
+  }
+  .sos-btn:active {
+    transform:scale(0.94);
+    box-shadow:0 0 0 3px rgba(255,255,255,0.15);
+    /* Shrinks when pressed — tactile feel */
+  }
+  .sos-btn-icon { font-size:28px; }
+
+  /* Status below the button */
+  .sos-status { font-size:13px; color:rgba(255,255,255,0.8); margin-bottom:16px; }
+  .sos-status strong { color:white; }
+
+  /* Quick action buttons below */
+  .sos-quick { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+  .q-btn {
+    background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.25);
+    color:white; padding:10px 20px; border-radius:40px;
+    font-size:13px; font-weight:600; cursor:pointer;
+    transition:all .2s; font-family:inherit;
+    display:flex; align-items:center; gap:6px;
+  }
+  .q-btn:hover { background:rgba(255,255,255,0.25); transform:translateY(-2px); }
+
+  /* =============================================
+     ALERT SENT POPUP
+  ============================================= */
+  .alert-sent {
+    display:none;
+    background:var(--green-dark);
+    border-radius:var(--radius-md);
+    padding:20px 24px; margin-bottom:20px;
+    color:white; animation:slideDown .4s ease;
+  }
+  .alert-sent.show { display:block; }
+
+  @keyframes slideDown {
+    from { opacity:0; transform:translateY(-20px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  .alert-sent-header { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+  .alert-sent-icon { font-size:32px; }
+  .alert-sent-title { font-family:'Playfair Display',serif; font-size:18px; font-weight:700; }
+  .alert-sent-sub { font-size:12px; color:rgba(255,255,255,0.6); margin-top:2px; }
+  .alert-sent-contacts { display:flex; flex-wrap:wrap; gap:8px; }
+  .sent-contact {
+    background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2);
+    padding:6px 14px; border-radius:20px; font-size:12px; font-weight:600;
+    display:flex; align-items:center; gap:5px;
+  }
+  .sent-tick { color:var(--green-light); }
+
+  /* =============================================
+     THREE COLUMN GRID
+  ============================================= */
+  .three-col { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:24px; }
+  @media(max-width:900px){ .three-col{ grid-template-columns:1fr; } }
+
+  .box { background:var(--white); border-radius:var(--radius-md); padding:22px; box-shadow:var(--shadow-sm); border:1px solid rgba(0,0,0,0.04); }
+  .box-title { font-family:'Playfair Display',serif; font-size:16px; font-weight:700; margin-bottom:4px; color:var(--text-dark); }
+  .box-sub   { font-size:12px; color:var(--text-light); margin-bottom:16px; }
+
+  /* =============================================
+     EMERGENCY CONTACTS
+  ============================================= */
+  .contact-list { display:flex; flex-direction:column; gap:10px; }
+
+  .contact-card {
+    display:flex; align-items:center; gap:12px;
+    padding:12px 14px; border-radius:var(--radius-sm);
+    border:1px solid rgba(0,0,0,0.06); background:var(--cream);
+    transition:all .2s; cursor:pointer;
+  }
+  .contact-card:hover { background:var(--danger-pale); border-color:var(--danger); transform:translateX(3px); }
+
+  .contact-avatar {
+    width:40px; height:40px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:18px; flex-shrink:0; border:2px solid rgba(0,0,0,0.08);
+  }
+
+  .contact-info { flex:1; }
+  .contact-name { font-size:13px; font-weight:600; color:var(--text-dark); }
+  .contact-role { font-size:11px; color:var(--text-light); margin-top:1px; }
+  .contact-num  { font-size:12px; color:var(--green-mid); font-weight:600; margin-top:2px; }
+
+  .call-btn {
+    width:32px; height:32px; border-radius:50%;
+    background:var(--green-pale); border:none; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px; transition:all .2s; flex-shrink:0;
+  }
+  .call-btn:hover { background:var(--green-light); transform:scale(1.1); }
+
+  .add-contact-btn {
+    width:100%; padding:10px; border:1.5px dashed rgba(0,0,0,0.15);
+    border-radius:var(--radius-sm); background:none; cursor:pointer;
+    color:var(--text-light); font-size:12px; font-weight:600;
+    font-family:inherit; transition:all .2s; margin-top:4px;
+    display:flex; align-items:center; justify-content:center; gap:6px;
+  }
+  .add-contact-btn:hover { border-color:var(--green-light); color:var(--green-mid); background:var(--green-pale); }
+
+  /* =============================================
+     LOCATION CARD
+  ============================================= */
+  .location-display {
+    background:var(--green-dark); border-radius:var(--radius-sm);
+    padding:16px; color:white; margin-bottom:14px;
+    position:relative; overflow:hidden;
+  }
+  .location-display::before {
+    content:'📍'; position:absolute;
+    font-size:80px; right:-10px; bottom:-20px; opacity:.08;
+  }
+  .loc-label { font-size:10px; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:.1em; margin-bottom:4px; }
+  .loc-address { font-size:13px; font-weight:600; line-height:1.5; }
+  .loc-coords  { font-size:11px; color:rgba(255,255,255,0.5); margin-top:6px; font-family:monospace; }
+  .loc-accuracy{ display:inline-flex; align-items:center; gap:4px; margin-top:8px; font-size:11px; background:rgba(255,255,255,0.1); padding:3px 10px; border-radius:20px; }
+
+  .loc-refresh {
+    width:100%; padding:9px; background:rgba(255,255,255,0.1);
+    border:1px solid rgba(255,255,255,0.2); border-radius:var(--radius-sm);
+    color:white; font-size:12px; font-weight:600; cursor:pointer;
+    font-family:inherit; transition:all .2s;
+    display:flex; align-items:center; justify-content:center; gap:6px;
+    margin-bottom:10px;
+  }
+  .loc-refresh:hover { background:rgba(255,255,255,0.2); }
+
+  /* Fake mini map */
+  .mini-map {
+    width:100%; height:140px; border-radius:var(--radius-sm);
+    background:linear-gradient(180deg,#a8dadc,#457b9d);
+    position:relative; overflow:hidden;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+  }
+  .mini-map::before { content:''; position:absolute; inset:0; background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect width='40' height='40' fill='none' stroke='rgba(255,255,255,0.1)' stroke-width='1'/%3E%3C/svg%3E"); }
+  .map-pin { font-size:36px; animation:bounce .8s ease-in-out infinite; }
+  @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+  .map-label { position:absolute; bottom:8px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.5); color:white; font-size:10px; font-weight:600; padding:3px 10px; border-radius:20px; white-space:nowrap; }
+
+  /* =============================================
+     SAFE ZONE
+  ============================================= */
+  .safe-status {
+    border-radius:var(--radius-sm); padding:14px 16px;
+    display:flex; align-items:center; gap:12px; margin-bottom:12px;
+  }
+  .safe-icon { font-size:28px; }
+  .safe-label { font-size:13px; font-weight:700; }
+  .safe-sub   { font-size:11px; margin-top:2px; opacity:.75; }
+
+  .safe-ok  { background:var(--green-pale); border:1px solid rgba(82,183,136,.3); }
+  .safe-warn{ background:var(--danger-pale); border:1px solid rgba(230,57,70,.3); }
+
+  .safe-zone-list { display:flex; flex-direction:column; gap:8px; }
+  .sz-item { display:flex; align-items:center; justify-content:space-between; font-size:12px; padding:8px 12px; background:var(--cream); border-radius:var(--radius-sm); border:1px solid rgba(0,0,0,0.05); }
+  .sz-name  { font-weight:600; color:var(--text-dark); display:flex; align-items:center; gap:6px; }
+  .sz-dist  { color:var(--text-light); }
+
+  /* =============================================
+     HELPLINE NUMBERS
+  ============================================= */
+  .helpline-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:24px; }
+  @media(max-width:600px){ .helpline-grid{ grid-template-columns:1fr; } }
+
+  .helpline-card {
+    border-radius:var(--radius-md); padding:18px;
+    cursor:pointer; transition:all .2s; display:flex; align-items:center; gap:14px;
+    border:1px solid rgba(0,0,0,0.06);
+  }
+  .helpline-card:hover { transform:translateY(-3px); box-shadow:var(--shadow-md); }
+
+  .hl-icon { font-size:32px; flex-shrink:0; }
+  .hl-name   { font-size:14px; font-weight:700; color:var(--text-dark); }
+  .hl-number { font-family:'Playfair Display',serif; font-size:22px; font-weight:800; line-height:1; }
+  .hl-desc   { font-size:11px; color:var(--text-light); margin-top:2px; }
+  .hl-call   { margin-left:auto; background:none; border:1px solid rgba(0,0,0,0.1); width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; cursor:pointer; flex-shrink:0; transition:all .2s; }
+  .hl-call:hover { transform:scale(1.1); }
+
+  /* Helpline colors */
+  .hl-police   { background:#e3f8ff; } .hl-police .hl-number   { color:#0a4d6e; }
+  .hl-fire     { background:#ffebee; } .hl-fire .hl-number     { color:#b71c1c; }
+  .hl-ambulance{ background:#e8f5e9; } .hl-ambulance .hl-number{ color:#1b5e20; }
+  .hl-women    { background:#fce4ec; } .hl-women .hl-number    { color:#880e4f; }
+  .hl-child    { background:#e8eaf6; } .hl-child .hl-number    { color:#1a237e; }
+  .hl-disaster { background:#fff3e0; } .hl-disaster .hl-number { color:#e65100; }
+
+  /* =============================================
+     PWA INSTALL SECTION
+  ============================================= */
+  .pwa-banner {
+    background:linear-gradient(135deg,var(--green-dark),var(--green-mid));
+    border-radius:var(--radius-lg); padding:28px 32px;
+    margin-bottom:24px; color:white;
+    display:flex; align-items:center; justify-content:space-between;
+    flex-wrap:wrap; gap:16px;
+  }
+  .pwa-left h3 { font-family:'Playfair Display',serif; font-size:20px; font-weight:700; margin-bottom:6px; }
+  .pwa-left p  { font-size:13px; color:rgba(255,255,255,0.7); line-height:1.5; }
+  .pwa-features { display:flex; gap:12px; margin-top:12px; flex-wrap:wrap; }
+  .pwa-feature { display:flex; align-items:center; gap:5px; font-size:12px; font-weight:600; }
+
+  .pwa-install-btn {
+    background:var(--green-light); color:var(--green-dark);
+    padding:12px 24px; border:none; border-radius:40px;
+    font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;
+    transition:all .2s; white-space:nowrap;
+    display:flex; align-items:center; gap:8px;
+  }
+  .pwa-install-btn:hover { background:white; transform:translateY(-2px); box-shadow:var(--shadow-md); }
+  .pwa-install-btn:disabled { opacity:.5; cursor:not-allowed; }
+
+  /* =============================================
+     COUNTDOWN TIMER (shown after SOS pressed)
+  ============================================= */
+  .countdown-overlay {
+    position:fixed; inset:0; z-index:500;
+    background:rgba(193,18,31,0.96);
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    color:white; opacity:0; pointer-events:none;
+    transition:opacity .3s;
+  }
+  .countdown-overlay.show { opacity:1; pointer-events:all; }
+  .countdown-num {
+    font-family:'Playfair Display',serif;
+    font-size:140px; font-weight:800; line-height:1;
+    animation:countPulse 1s ease-in-out infinite;
+  }
+  @keyframes countPulse {
+    0%,100% { transform:scale(1); }
+    50%      { transform:scale(1.08); }
+  }
+  .countdown-label { font-size:18px; font-weight:600; margin-bottom:8px; opacity:.9; }
+  .countdown-sub   { font-size:14px; opacity:.7; margin-bottom:32px; }
+  .countdown-cancel {
+    background:rgba(255,255,255,0.2); border:2px solid rgba(255,255,255,0.4);
+    color:white; padding:12px 32px; border-radius:40px;
+    font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;
+    transition:all .2s;
+  }
+  .countdown-cancel:hover { background:rgba(255,255,255,0.3); }
+
+  /* =============================================
+     OFFLINE INDICATOR
+  ============================================= */
+  .offline-bar {
+    position:fixed; top:0; left:0; right:0; z-index:9999;
+    background:#333; color:white; text-align:center;
+    padding:8px; font-size:12px; font-weight:600;
+    transform:translateY(-100%); transition:transform .3s;
+  }
+  .offline-bar.show { transform:translateY(0); }
+
+  /* =============================================
+     MISC
+  ============================================= */
+  .section-label { font-family:'Playfair Display',serif; font-size:18px; font-weight:700; margin-bottom:14px; color:var(--text-dark); }
+  .section-label small { font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; font-weight:400; color:var(--text-light); margin-left:8px; }
+
+  .toast { position:fixed; bottom:24px; right:24px; background:var(--green-dark); color:white; padding:12px 20px; border-radius:var(--radius-sm); font-size:13px; font-weight:500; z-index:9999; display:flex; align-items:center; gap:8px; box-shadow:var(--shadow-lg); transform:translateY(80px); opacity:0; transition:all .3s ease; max-width:320px; }
+  .toast.show { transform:translateY(0); opacity:1; }
+  .overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:90; }
+  .overlay.show { display:block; }
+
+  .fade-up { animation:fadeUp .5s ease both; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+  .d1{animation-delay:.1s} .d2{animation-delay:.2s} .d3{animation-delay:.3s} .d4{animation-delay:.4s}
+
+  .spin { display:inline-block; animation:spin .7s linear infinite; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+  </style>
+</head>
+<body>
+
+<!-- OFFLINE INDICATOR -->
+<div class="offline-bar" id="offlineBar">
+  📵 You are offline — SOS via SMS still works!
+</div>
+
+<!-- COUNTDOWN OVERLAY (shown when SOS pressed) -->
+<div class="countdown-overlay" id="countdownOverlay">
+  <div class="countdown-label">🆘 SOS SENDING IN</div>
+  <div class="countdown-num" id="countdownNum">5</div>
+  <div class="countdown-sub" id="countdownSub">Alerting police, hospital and 3 contacts...</div>
+  <button class="countdown-cancel" onclick="cancelSOS()">✕ Cancel (False Alarm)</button>
+</div>
+
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+<div class="toast"   id="toast"><span id="t-icon">✅</span><span id="t-msg"></span></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-title">Gram<span>Shakti</span></div>
+    <div class="logo-tag">Village Super App</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">Main</div>
+    <a class="nav-item" href="index.html">🏠 Dashboard</a>
+    <div class="nav-label">Farming</div>
+    <a class="nav-item" href="crop.html">🌿 Crop Doctor <span class="nav-badge">AI</span></a>
+    <a class="nav-item" href="weather.html">⛅ Farm Weather</a>
+    <a class="nav-item" href="mandi.html">📊 Mandi Prices <span class="nav-badge">Live</span></a>
+    <div class="nav-label">Government</div>
+    <a class="nav-item" href="scheme.html">🏛️ Scheme Finder</a>
+    <div class="nav-label">Village Life</div>
+    <a class="nav-item" href="#">🏥 Health & Doctor</a>
+    <a class="nav-item active" href="sos.html">🆘 Emergency SOS</a>
+    <a class="nav-item" href="#">💼 Jobs & MNREGA</a>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="user-card">
+      <div class="user-avatar">👨‍🌾</div>
+      <div><div class="user-name">Raju Patil</div><div class="user-sub">Nandgaon Village</div></div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <button class="hamburger" onclick="openSidebar()">
+        <div class="ham-line"></div><div class="ham-line"></div><div class="ham-line"></div>
+      </button>
+      <div>
+        <div class="page-title">Emergency SOS</div>
+        <div class="page-sub">One tap — help is on the way</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="gps-badge gps-off" id="gpsBadge">
+        <div class="gps-dot"></div>
+        <span id="gpsLabel">Getting GPS...</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- PWA INSTALL BANNER -->
+    <div class="pwa-banner fade-up" id="pwaBanner">
+      <div class="pwa-left">
+        <h3>📱 Install GramShakti on your Phone</h3>
+        <p>Install as an app — works offline, opens from home screen, loads faster</p>
+        <div class="pwa-features">
+          <span class="pwa-feature">✅ Works offline</span>
+          <span class="pwa-feature">✅ Home screen icon</span>
+          <span class="pwa-feature">✅ Faster loading</span>
+          <span class="pwa-feature">✅ Push notifications</span>
+        </div>
+      </div>
+      <button class="pwa-install-btn" id="installBtn" onclick="installPWA()">
+        ⬇️ Install App
+      </button>
+    </div>
+
+    <!-- ALERT SENT CONFIRMATION (hidden initially) -->
+    <div class="alert-sent" id="alertSent">
+      <div class="alert-sent-header">
+        <div class="alert-sent-icon">✅</div>
+        <div>
+          <div class="alert-sent-title">SOS Alert Sent!</div>
+          <div class="alert-sent-sub" id="alertSentTime">Just now — help is on the way</div>
+        </div>
+      </div>
+      <div class="alert-sent-contacts" id="alertSentContacts"></div>
+    </div>
+
+    <!-- BIG SOS BUTTON -->
+    <div class="sos-hero fade-up d1">
+      <div class="sos-hero-content">
+        <h2>🆘 Emergency Help</h2>
+        <p>Press and hold the button for 2 seconds. Your GPS location will be sent to police, hospital, and your emergency contacts instantly.</p>
+
+        <div class="sos-btn-wrap">
+          <div class="sos-ring sos-ring-1"></div>
+          <div class="sos-ring sos-ring-2"></div>
+          <div class="sos-ring sos-ring-3"></div>
+          <button class="sos-btn" id="sosBtn" onclick="pressSOS()">
+            <span class="sos-btn-icon">🆘</span>
+            SOS
+          </button>
+        </div>
+
+        <div class="sos-status">
+          GPS: <strong id="sosGpsStatus">Getting location...</strong>
+        </div>
+
+        <div class="sos-quick">
+          <button class="q-btn" onclick="callNumber('100')">🚔 Call Police 100</button>
+          <button class="q-btn" onclick="callNumber('108')">🚑 Call Ambulance 108</button>
+          <button class="q-btn" onclick="callNumber('101')">🔥 Fire Brigade 101</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- THREE COLUMN: Contacts | Location | Safe Zones -->
+    <div class="three-col">
+
+      <!-- EMERGENCY CONTACTS -->
+      <div class="box fade-up d2">
+        <div class="box-title">👥 Emergency Contacts</div>
+        <div class="box-sub">These people will receive your SOS alert</div>
+        <div class="contact-list" id="contactList"></div>
+        <button class="add-contact-btn" onclick="addContact()">+ Add Emergency Contact</button>
+      </div>
+
+      <!-- LOCATION -->
+      <div class="box fade-up d2">
+        <div class="box-title">📍 Your Location</div>
+        <div class="box-sub">Shared with help during SOS</div>
+
+        <div class="location-display">
+          <div class="loc-label">Current address</div>
+          <div class="loc-address" id="locAddress">Getting your location...</div>
+          <div class="loc-coords"  id="locCoords">Lat: — | Lng: —</div>
+          <div class="loc-accuracy" id="locAccuracy">📡 Locating...</div>
+        </div>
+
+        <button class="loc-refresh" onclick="refreshLocation()">
+          🔄 Refresh Location
+        </button>
+
+        <div class="mini-map" onclick="showToast('🗺️ Opening Google Maps...','🗺️')">
+          <div class="map-pin">📍</div>
+          <div class="map-label">Your village — click for full map</div>
+        </div>
+      </div>
+
+      <!-- SAFE ZONES -->
+      <div class="box fade-up d2">
+        <div class="box-title">🛡️ Safe Zones Near You</div>
+        <div class="box-sub">Closest safe places if you need to go</div>
+
+        <div class="safe-status safe-ok">
+          <div class="safe-icon">✅</div>
+          <div>
+            <div class="safe-label" style="color:var(--green-mid)">You are in a safe zone</div>
+            <div class="safe-sub" style="color:var(--text-mid)">No active threats in your area</div>
+          </div>
+        </div>
+
+        <div class="safe-zone-list">
+          <div class="sz-item">
+            <div class="sz-name">🏥 Primary Health Centre</div>
+            <div class="sz-dist">0.8 km</div>
+          </div>
+          <div class="sz-item">
+            <div class="sz-name">🏫 Government School</div>
+            <div class="sz-dist">1.2 km</div>
+          </div>
+          <div class="sz-item">
+            <div class="sz-name">🚔 Police Outpost</div>
+            <div class="sz-dist">2.4 km</div>
+          </div>
+          <div class="sz-item">
+            <div class="sz-name">🕌 Community Hall</div>
+            <div class="sz-dist">0.4 km</div>
+          </div>
+          <div class="sz-item">
+            <div class="sz-name">🚑 Ambulance Station</div>
+            <div class="sz-dist">3.1 km</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HELPLINE NUMBERS -->
+    <div class="section-label fade-up d3">📞 National Helplines <small>— tap to call</small></div>
+    <div class="helpline-grid fade-up d3">
+      <div class="helpline-card hl-police" onclick="callNumber('100')">
+        <div class="hl-icon">🚔</div>
+        <div>
+          <div class="hl-name">Police</div>
+          <div class="hl-number">100</div>
+          <div class="hl-desc">Law & order emergencies</div>
+        </div>
+        <button class="hl-call" onclick="event.stopPropagation();callNumber('100')">📞</button>
+      </div>
+      <div class="helpline-card hl-fire" onclick="callNumber('101')">
+        <div class="hl-icon">🔥</div>
+        <div>
+          <div class="hl-name">Fire Brigade</div>
+          <div class="hl-number">101</div>
+          <div class="hl-desc">Fire & rescue services</div>
+        </div>
+        <button class="hl-call" onclick="event.stopPropagation();callNumber('101')">📞</button>
+      </div>
+      <div class="helpline-card hl-ambulance" onclick="callNumber('108')">
+        <div class="hl-icon">🚑</div>
+        <div>
+          <div class="hl-name">Ambulance</div>
+          <div class="hl-number">108</div>
+          <div class="hl-desc">Medical emergency services</div>
+        </div>
+        <button class="hl-call" onclick="event.stopPropagation();callNumber('108')">📞</button>
+      </div>
+      <div class="helpline-card hl-women" onclick="callNumber('1091')">
+        <div class="hl-icon">👩</div>
+        <div>
+          <div class="hl-name">Women Helpline</div>
+          <div class="hl-number">1091</div>
+          <div class="hl-desc">Women in distress</div>
+        </div>
+        <button class="hl-call" onclick="event.stopPropagation();callNumber('1091')">📞</button>
+      </div>
+      <div class="helpline-card hl-child" onclick="callNumber('1098')">
+        <div class="hl-icon">👶</div>
+        <div>
+          <div class="hl-name">Child Helpline</div>
+          <div class="hl-number">1098</div>
+          <div class="hl-desc">Child abuse & missing children</div>
+        </div>
+        <button class="hl-call" onclick="event.stopPropagation();callNumber('1098')">📞</button>
+      </div>
+      <div class="helpline-card hl-disaster" onclick="callNumber('1070')">
+        <div class="hl-icon">🌊</div>
+        <div>
+          <div class="hl-name">Disaster Relief</div>
+          <div class="hl-number">1070</div>
+          <div class="hl-desc">Flood, earthquake, cyclone</div>
+        </div>
+        <button class="hl-call" onclick="event.stopPropagation();callNumber('1070')">📞</button>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- =============================================
+     JAVASCRIPT
+============================================= -->
+<script>
+
+// ============================================================
+// SECTION 1: EMERGENCY CONTACTS DATA
+// Stored in localStorage so they persist between sessions
+// ============================================================
+
+/*
+  localStorage = browser's built-in key-value storage
+  Data survives page refreshes and closing the browser
+  Unlike variables which reset when page reloads
+  
+  localStorage.setItem('key', value)  = save
+  localStorage.getItem('key')         = load
+  localStorage.removeItem('key')      = delete
+  
+  IMPORTANT: localStorage only stores STRINGS
+  So we use JSON.stringify() to convert objects to strings
+  And JSON.parse() to convert strings back to objects
+*/
+
+var DEFAULT_CONTACTS = [
+  { id:1, name:'Sita Patil (Wife)',    phone:'9876543210', relation:'Family',  avatar:'👩' },
+  { id:2, name:'Suresh Patil (Son)',   phone:'9765432109', relation:'Family',  avatar:'👦' },
+  { id:3, name:'Village Sarpanch',     phone:'9654321098', relation:'Village', avatar:'🏛️' },
+];
+
+function getContacts() {
+  var stored = localStorage.getItem('gramshakti_contacts');
+  /*
+    localStorage.getItem() = get value for this key
+    Returns null if key doesn't exist yet
+  */
+  if (stored) {
+    return JSON.parse(stored);
+    /* JSON.parse() = convert JSON string back to JavaScript object */
+  }
+  return DEFAULT_CONTACTS;
+  /* First time — no saved contacts, use defaults */
+}
+
+function saveContacts(contacts) {
+  localStorage.setItem('gramshakti_contacts', JSON.stringify(contacts));
+  /*
+    JSON.stringify() = convert JavaScript object to JSON string
+    e.g. [{name:'Sita'}] → '[{"name":"Sita"}]'
+    We must stringify because localStorage only stores strings
+  */
+}
+
+function renderContacts() {
+  var contacts = getContacts();
+  var list = document.getElementById('contactList');
+
+  list.innerHTML = contacts.map(function(c) {
+    return `
+      <div class="contact-card" onclick="showToast('📞 Calling ${c.name}...','📞')">
+        <div class="contact-avatar" style="background:var(--green-pale)">${c.avatar}</div>
+        <div class="contact-info">
+          <div class="contact-name">${c.name}</div>
+          <div class="contact-role">${c.relation}</div>
+          <div class="contact-num">📞 ${c.phone}</div>
+        </div>
+        <button class="call-btn" onclick="event.stopPropagation();callNumber('${c.phone}')">📞</button>
+      </div>
+    `;
+  }).join('');
+}
+
+function addContact() {
+  /* In a real app, open a form modal */
+  /* For demo, we add a sample contact */
+  var contacts = getContacts();
+  var newContact = {
+    id:       Date.now(),
+    name:     prompt('Enter contact name:') || 'New Contact',
+    phone:    prompt('Enter phone number:') || '9000000000',
+    relation: 'Friend',
+    avatar:   '👤',
+  };
+  /*
+    prompt() = show browser's built-in input dialog
+    Returns the text user typed, or null if cancelled
+    In Week 6, we use simple prompt() — real app would have a modal form
+  */
+
+  if (newContact.name && newContact.phone) {
+    contacts.push(newContact);
+    saveContacts(contacts);
+    renderContacts();
+    showToast('✅ Contact added: ' + newContact.name, '👤');
+  }
+}
+
+// ============================================================
+// SECTION 2: GPS LOCATION
+// ============================================================
+
+var currentLat = null;
+var currentLng = null;
+var locationWatcher = null;
+/*
+  locationWatcher = the ID of the GPS watcher
+  We save it so we can stop watching later
+*/
+
+function startLocationWatch() {
+  if (!navigator.geolocation) {
+    updateLocationDisplay(null, null, 'GPS not supported');
+    return;
+  }
+
+  locationWatcher = navigator.geolocation.watchPosition(
+    /*
+      watchPosition = keep watching GPS, update every time location changes
+      Different from getCurrentPosition which only gets it ONCE
+      Great for SOS — always has fresh location
+    */
+    function(position) {
+      currentLat = position.coords.latitude;
+      currentLng = position.coords.longitude;
+      var accuracy = Math.round(position.coords.accuracy);
+      /*
+        position.coords.accuracy = how accurate the GPS is in METRES
+        10 metres = very accurate (clear sky)
+        100 metres = less accurate (indoors)
+      */
+
+      updateLocationDisplay(currentLat, currentLng, accuracy);
+    },
+    function(error) {
+      /* GPS error codes */
+      var msg = {
+        1: 'GPS permission denied',
+        2: 'Location unavailable',
+        3: 'GPS timed out',
+      }[error.code] || 'GPS error';
+
+      updateLocationDisplay(null, null, msg);
+    },
+    {
+      enableHighAccuracy: true,
+      /*
+        enableHighAccuracy: true = use GPS chip (more accurate)
+        false = use cell towers / wifi (faster but less accurate)
+      */
+      timeout: 15000,
+      /* Give up after 15 seconds if no GPS fix */
+      maximumAge: 0,
+      /* maximumAge: 0 = always get fresh location, never use cached */
+    }
+  );
+}
+
+function updateLocationDisplay(lat, lng, accuracy) {
+  var badge   = document.getElementById('gpsBadge');
+  var label   = document.getElementById('gpsLabel');
+  var addr    = document.getElementById('locAddress');
+  var coords  = document.getElementById('locCoords');
+  var accEl   = document.getElementById('locAccuracy');
+  var sosGps  = document.getElementById('sosGpsStatus');
+
+  if (lat && lng) {
+    /* GPS success */
+    badge.className = 'gps-badge gps-on';
+    label.textContent = 'GPS Active';
+
+    /*
+      In a real app, we'd use Google Maps Geocoding API
+      to convert lat/lng to a human-readable address
+      For demo, we show coordinates + estimate village
+    */
+    addr.textContent  = 'Nandgaon Village, Nashik District, Maharashtra';
+    coords.textContent = 'Lat: ' + lat.toFixed(4) + ' | Lng: ' + lng.toFixed(4);
+    accEl.textContent  = '📡 Accuracy: ±' + accuracy + 'm';
+    sosGps.textContent = lat.toFixed(4) + ', ' + lng.toFixed(4);
+
+  } else {
+    /* GPS failed */
+    badge.className = 'gps-badge gps-off';
+    label.textContent = 'No GPS';
+    addr.textContent  = accuracy || 'Location unavailable';
+    sosGps.textContent = 'Not available';
+  }
+}
+
+function refreshLocation() {
+  /* Stop old watcher and start fresh */
+  if (locationWatcher !== null) {
+    navigator.geolocation.clearWatch(locationWatcher);
+    /* clearWatch = stop the watchPosition watcher */
+  }
+  showToast('🔄 Refreshing GPS location...', '📍');
+  startLocationWatch();
+}
+
+// ============================================================
+// SECTION 3: THE SOS SYSTEM
+// ============================================================
+
+var countdownTimer = null;
+var countdownValue = 5;
+var sosActive = false;
+
+function pressSOS() {
+  if (sosActive) return;
+  /* Prevent double-press */
+
+  sosActive = true;
+  countdownValue = 5;
+
+  /* Show countdown overlay */
+  document.getElementById('countdownOverlay').classList.add('show');
+  document.getElementById('countdownNum').textContent = countdownValue;
+
+  /* Set dynamic subtitle */
+  var contacts = getContacts();
+  document.getElementById('countdownSub').textContent =
+    'Alerting police, hospital and ' + contacts.length + ' contacts...';
+
+  /* Count down from 5 */
+  countdownTimer = setInterval(function() {
+    countdownValue--;
+    document.getElementById('countdownNum').textContent = countdownValue;
+
+    if (countdownValue <= 0) {
+      clearInterval(countdownTimer);
+      sendSOSAlert();
+      /* When countdown reaches 0, SEND the alert */
+    }
+  }, 1000);
+  /* 1000ms = 1 second interval */
+}
+
+function cancelSOS() {
+  /* User pressed Cancel */
+  if (countdownTimer) clearInterval(countdownTimer);
+  document.getElementById('countdownOverlay').classList.remove('show');
+  sosActive = false;
+  showToast('✅ SOS cancelled — stay safe!', '✅');
+}
+
+function sendSOSAlert() {
+  /* Hide countdown */
+  document.getElementById('countdownOverlay').classList.remove('show');
+  sosActive = false;
+
+  var contacts = getContacts();
+  var location = currentLat
+    ? currentLat.toFixed(4) + ', ' + currentLng.toFixed(4)
+    : 'Nandgaon Village (GPS unavailable)';
+
+  /*
+    In a REAL app, here we would:
+    1. POST to our server with location + contact list
+    2. Server sends SMS via Twilio API to all contacts
+    3. Server calls emergency services API
+    4. Push notification to family members
+
+    For demo: we simulate this and show confirmation
+  */
+
+  /* Show confirmation */
+  var alertSent = document.getElementById('alertSent');
+  var contactsEl = document.getElementById('alertSentContacts');
+  var timeEl     = document.getElementById('alertSentTime');
+
+  /* Mark all contacts as "sent" */
+  contactsEl.innerHTML = contacts.map(function(c) {
+    return `<div class="sent-contact"><span class="sent-tick">✓</span>${c.name}</div>`;
+  }).join('') +
+  '<div class="sent-contact"><span class="sent-tick">✓</span>Police 100</div>' +
+  '<div class="sent-contact"><span class="sent-tick">✓</span>Ambulance 108</div>';
+
+  timeEl.textContent = 'Sent at ' + new Date().toLocaleTimeString('en-IN') + ' — Location: ' + location;
+
+  alertSent.classList.add('show');
+
+  /* Save SOS log to localStorage */
+  var sosLog = JSON.parse(localStorage.getItem('gramshakti_sos_log') || '[]');
+  sosLog.unshift({
+    time: new Date().toISOString(),
+    location: location,
+    contacts: contacts.length,
+  });
+  localStorage.setItem('gramshakti_sos_log', JSON.stringify(sosLog.slice(0, 10)));
+
+  showToast('🆘 SOS SENT! Help is coming to your location!', '🆘');
+
+  /* Vibrate the phone (if supported) */
+  if (navigator.vibrate) {
+    navigator.vibrate([500, 200, 500, 200, 500]);
+    /*
+      vibrate([...]) = vibrate the phone
+      Array = pattern: 500ms vibrate, 200ms pause, 500ms vibrate, etc.
+      Only works on Android phones with vibration support
+    */
+  }
+
+  /* Scroll to top to show confirmation */
+  document.querySelector('.main').scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function callNumber(num) {
+  /*
+    tel: protocol = tell the browser to open the phone dialer
+    On mobile: opens dialer with the number pre-filled
+    On desktop: may open Skype or show an error
+  */
+  window.location.href = 'tel:' + num;
+  showToast('📞 Opening dialer: ' + num, '📞');
+}
+
+// ============================================================
+// SECTION 4: PWA — MAKING THE APP INSTALLABLE
+//
+// A PWA (Progressive Web App) needs 3 things:
+// 1. A manifest.json file (app config)
+// 2. A service worker (handles offline)
+// 3. HTTPS (required for service workers)
+// ============================================================
+
+var deferredInstallPrompt = null;
+/*
+  The browser fires a 'beforeinstallprompt' event
+  when the app meets PWA criteria and can be installed
+  We save this event to use later when user clicks Install
+*/
+
+window.addEventListener('beforeinstallprompt', function(event) {
+  event.preventDefault();
+  /*
+    preventDefault() = stop the browser from showing its own install prompt
+    We want to control WHEN to show it (when user clicks our button)
+  */
+  deferredInstallPrompt = event;
+  /* Save the event for later */
+  document.getElementById('installBtn').disabled = false;
+  showToast('📱 GramShakti can be installed as an app!', '📱');
+});
+
+async function installPWA() {
+  if (!deferredInstallPrompt) {
+    showToast('ℹ️ Use browser menu → Add to Home Screen', 'ℹ️');
+    return;
+  }
+
+  deferredInstallPrompt.prompt();
+  /*
+    .prompt() = show the browser's install dialog
+    "Add to Home Screen?" YES / NO
+  */
+
+  var result = await deferredInstallPrompt.userChoice;
+  /*
+    userChoice = Promise that resolves when user makes a choice
+    result.outcome = 'accepted' or 'dismissed'
+  */
+
+  if (result.outcome === 'accepted') {
+    showToast('🎉 GramShakti installed! Find it on your home screen.', '📱');
+    document.getElementById('pwaBanner').style.display = 'none';
+  }
+
+  deferredInstallPrompt = null;
+}
+
+/* Hide install banner after app is installed */
+window.addEventListener('appinstalled', function() {
+  document.getElementById('pwaBanner').style.display = 'none';
+  showToast('✅ App installed successfully!', '🎉');
+});
+
+// ============================================================
+// SECTION 5: SERVICE WORKER REGISTRATION
+//
+// Service Worker = a JavaScript file that runs in the background
+// It intercepts network requests and can serve cached responses
+// This is what makes the app work OFFLINE
+// ============================================================
+
+function registerServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    /*
+      Check if the browser supports Service Workers
+      All modern browsers support it, IE doesn't
+    */
+    navigator.serviceWorker.register('sw.js')
+      .then(function(registration) {
+        /*
+          .then() = runs when registration SUCCEEDS
+          registration = the ServiceWorkerRegistration object
+        */
+        console.log('Service Worker registered! Scope:', registration.scope);
+        /* Scope = which URLs this service worker controls */
+      })
+      .catch(function(error) {
+        console.log('Service Worker failed:', error);
+        /* This is OK — app still works, just not offline */
+      });
+  }
+}
+
+// ============================================================
+// SECTION 6: OFFLINE DETECTION
+// ============================================================
+
+window.addEventListener('online', function() {
+  /* Browser went back online */
+  document.getElementById('offlineBar').classList.remove('show');
+  showToast('✅ Back online!', '📶');
+});
+
+window.addEventListener('offline', function() {
+  /* Browser went offline */
+  document.getElementById('offlineBar').classList.add('show');
+  showToast('📵 Offline — SOS SMS still works!', '📵');
+});
+
+// ============================================================
+// SECTION 7: HELPERS
+// ============================================================
+
+function openSidebar()  { document.getElementById('sidebar').classList.add('open'); document.getElementById('overlay').classList.add('show'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('show'); }
+
+var toastTimer = null;
+function showToast(msg, icon) {
+  var t = document.getElementById('toast');
+  document.getElementById('t-msg').textContent  = msg;
+  document.getElementById('t-icon').textContent = icon || '✅';
+  t.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(function() { t.classList.remove('show'); }, 3500);
+}
+
+// ============================================================
+// SECTION 8: INITIALIZE
+// ============================================================
+
+window.addEventListener('load', function() {
+  renderContacts();
+  startLocationWatch();
+  registerServiceWorker();
+
+  /* Disable install button until browser signals PWA is installable */
+  document.getElementById('installBtn').disabled = true;
+
+  /* Check if already offline */
+  if (!navigator.onLine) {
+    document.getElementById('offlineBar').classList.add('show');
+  }
+
+  showToast('🆘 SOS ready — GPS locating...', '📍');
+});
+
+</script>
+
+<!--
+  =============================================
+  HOW TO CREATE THE 2 PWA FILES
+  Create these as separate files in your project folder
+  =============================================
+
+  FILE 1: manifest.json
+  ─────────────────────
+  Create a file called manifest.json in your project folder.
+  Copy-paste this content into it:
+
+  {
+    "name": "GramShakti — Village Super App",
+    "short_name": "GramShakti",
+    "description": "All-in-one app for farmers and villages",
+    "start_url": "/index.html",
+    "display": "standalone",
+    "background_color": "#fefae0",
+    "theme_color": "#1a3c2e",
+    "orientation": "portrait",
+    "icons": [
+      {
+        "src": "icon-192.png",
+        "sizes": "192x192",
+        "type": "image/png",
+        "purpose": "any maskable"
+      },
+      {
+        "src": "icon-512.png",
+        "sizes": "512x512",
+        "type": "image/png",
+        "purpose": "any maskable"
+      }
+    ]
+  }
+
+  "display": "standalone" = app opens without browser UI (like a native app)
+  "start_url" = which page opens when app icon is tapped
+  "icons" = app icon (create a 512x512 green square with 🌾 emoji)
+
+
+  FILE 2: sw.js (Service Worker)
+  ──────────────────────────────
+  Create a file called sw.js in your project folder.
+  Copy-paste this content into it:
+
+  var CACHE_NAME = 'gramshakti-v1';
+  var CACHED_FILES = [
+    '/',
+    '/index.html',
+    '/mandi.html',
+    '/weather.html',
+    '/scheme.html',
+    '/crop.html',
+    '/sos.html',
+  ];
+
+  // INSTALL: Cache all files when service worker installs
+  self.addEventListener('install', function(event) {
+    event.waitUntil(
+      caches.open(CACHE_NAME).then(function(cache) {
+        return cache.addAll(CACHED_FILES);
+      })
+    );
+  });
+
+  // FETCH: Serve from cache when offline
+  self.addEventListener('fetch', function(event) {
+    event.respondWith(
+      caches.match(event.request).then(function(cachedResponse) {
+        if (cachedResponse) {
+          return cachedResponse; // Return from cache if available
+        }
+        return fetch(event.request); // Otherwise fetch from network
+      })
+    );
+  });
+
+  // ACTIVATE: Delete old caches
+  self.addEventListener('activate', function(event) {
+    event.waitUntil(
+      caches.keys().then(function(keys) {
+        return Promise.all(
+          keys.filter(function(key) { return key !== CACHE_NAME; })
+              .map(function(key) { return caches.delete(key); })
+        );
+      })
+    );
+  });
+
+  HOW SERVICE WORKER WORKS (interview answer):
+  "A service worker runs in the background separate from the main thread.
+   On first load it caches all HTML, CSS and JS files.
+   On subsequent loads, even without internet, it serves files from the cache.
+   It intercepts every fetch() request and checks the cache first."
+-->
+
+</body>
+</html>

@@ -1,0 +1,1976 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mandi Prices — GramShakti</title>
+
+  <!-- Google Fonts — same as Week 1 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <!--
+    Chart.js — a FREE library that draws beautiful charts
+    We load it from cdnjs (a free CDN = Content Delivery Network)
+    CDN = a server that hosts libraries so we don't have to
+    One <script> tag = we can use Chart.js everywhere on this page
+  -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+  <style>
+  /* =============================================
+     CSS VARIABLES — Color palette
+     Same green theme as Week 1 for consistency
+  ============================================= */
+  :root {
+    --green-dark:  #1a3c2e;
+    --green-mid:   #2d6a4f;
+    --green-light: #52b788;
+    --green-pale:  #d8f3dc;
+    --gold:        #f4a261;
+    --gold-pale:   #fff3e0;
+    --cream:       #fefae0;
+    --white:       #ffffff;
+    --text-dark:   #1b1b1b;
+    --text-mid:    #4a4a4a;
+    --text-light:  #888888;
+    --danger:      #e63946;
+    --sky:         #4cc9f0;
+    --sidebar-w:   260px;
+    --radius-sm:   8px;
+    --radius-md:   14px;
+    --radius-lg:   20px;
+    --shadow-sm:   0 2px 8px rgba(0,0,0,0.07);
+    --shadow-md:   0 4px 20px rgba(0,0,0,0.12);
+    --shadow-lg:   0 8px 32px rgba(0,0,0,0.16);
+  }
+
+  /* =============================================
+     RESET + BASE
+  ============================================= */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: var(--cream);
+    color: var(--text-dark);
+    min-height: 100vh;
+    display: flex;
+  }
+
+  /* =============================================
+     SIDEBAR — copy from Week 1
+     (In a real project we'd use a shared file,
+      but for learning we repeat it here)
+  ============================================= */
+  .sidebar {
+    width: var(--sidebar-w);
+    min-height: 100vh;
+    background: var(--green-dark);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0; left: 0;
+    z-index: 100;
+    transition: transform 0.3s ease;
+  }
+
+  @media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+  }
+
+  .sidebar-logo {
+    padding: 28px 24px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .logo-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px; font-weight: 800;
+    color: var(--white);
+  }
+
+  .logo-title span { color: var(--green-light); }
+  .logo-tag { font-size: 11px; color: rgba(255,255,255,0.4); margin-top:3px; letter-spacing:.1em; text-transform:uppercase; }
+
+  .sidebar-nav { flex:1; padding: 16px 12px; overflow-y: auto; }
+  .nav-label { font-size:10px; color:rgba(255,255,255,0.3); text-transform:uppercase; letter-spacing:.12em; padding:12px 12px 6px; }
+
+  .nav-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 14px; border-radius: var(--radius-sm);
+    color: rgba(255,255,255,0.65); cursor: pointer;
+    transition: all 0.2s ease; margin-bottom: 2px;
+    font-size: 13.5px; font-weight: 500;
+    text-decoration: none;
+  }
+
+  .nav-item:hover { background: rgba(255,255,255,0.08); color: var(--white); transform: translateX(4px); }
+  .nav-item.active { background: var(--green-light); color: var(--green-dark); font-weight: 600; }
+  .nav-badge { margin-left:auto; background:var(--gold); color:var(--green-dark); font-size:10px; font-weight:700; padding:2px 7px; border-radius:20px; }
+
+  .sidebar-bottom { padding:16px; border-top:1px solid rgba(255,255,255,0.1); }
+  .user-card { display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.07); padding:10px 12px; border-radius:var(--radius-sm); }
+  .user-avatar { width:36px; height:36px; border-radius:50%; background:var(--green-light); display:flex; align-items:center; justify-content:center; font-size:16px; }
+  .user-name { font-size:13px; font-weight:600; color:var(--white); }
+  .user-sub  { font-size:11px; color:rgba(255,255,255,0.4); }
+
+  /* =============================================
+     MAIN LAYOUT
+  ============================================= */
+  .main {
+    flex: 1;
+    margin-left: var(--sidebar-w);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  @media(max-width:768px) { .main { margin-left:0; } }
+
+  /* TOPBAR */
+  .topbar {
+    background: var(--white);
+    padding: 0 28px;
+    height: 68px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    box-shadow: var(--shadow-sm);
+    position: sticky; top: 0; z-index: 50;
+    gap: 16px;
+  }
+
+  .topbar-left { display:flex; align-items:center; gap:14px; }
+
+  .hamburger { display:none; flex-direction:column; gap:5px; cursor:pointer; padding:4px; background:none; border:none; }
+  @media(max-width:768px) { .hamburger { display:flex; } }
+  .ham-line { width:22px; height:2px; background:var(--text-dark); border-radius:2px; }
+
+  .page-title { font-family:'Playfair Display',serif; font-size:20px; font-weight:700; }
+  .page-sub   { font-size:12px; color:var(--text-light); margin-top:1px; }
+
+  .topbar-right { display:flex; align-items:center; gap:10px; }
+
+  .live-badge {
+    display: flex; align-items: center; gap: 6px;
+    background: #e8f5e9; color: #2e7d32;
+    padding: 6px 14px; border-radius: 20px;
+    font-size: 12px; font-weight: 600;
+  }
+
+  .live-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #2e7d32;
+    animation: blink 1.2s ease-in-out infinite;
+    /*
+      We defined this animation below with @keyframes blink
+      1.2s = takes 1.2 seconds, infinite = loops forever
+    */
+  }
+
+  @keyframes blink {
+    0%,100% { opacity:1; }
+    50%      { opacity:0.3; }
+    /*
+      At 0% = fully visible
+      At 50% = almost invisible
+      At 100% = fully visible again
+      Result = blinking effect
+    */
+  }
+
+  .icon-btn {
+    width:38px; height:38px; border-radius:50%;
+    background:var(--cream); border:1px solid rgba(0,0,0,0.06);
+    display:flex; align-items:center; justify-content:center;
+    font-size:16px; cursor:pointer; transition:all 0.2s;
+  }
+
+  .icon-btn:hover { background:var(--green-pale); border-color:var(--green-light); transform:scale(1.05); }
+
+  /* =============================================
+     PAGE CONTENT
+  ============================================= */
+  .content { flex:1; padding:28px; }
+  @media(max-width:768px) { .content { padding:16px; } }
+
+  /* =============================================
+     TOP SUMMARY BAR
+  ============================================= */
+  .summary-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+
+  @media(max-width:900px)  { .summary-bar { grid-template-columns: repeat(2,1fr); } }
+  @media(max-width:500px)  { .summary-bar { grid-template-columns: repeat(2,1fr); gap:10px; } }
+
+  .sum-card {
+    background: var(--white);
+    border-radius: var(--radius-md);
+    padding: 18px 20px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid rgba(0,0,0,0.04);
+    border-top: 3px solid var(--top-color, var(--green-light));
+    /*
+      border-top = only the TOP border is colored
+      3px wide, solid line, colored with our variable
+    */
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+  }
+
+  .sum-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .sum-label  { font-size:11px; color:var(--text-light); text-transform:uppercase; letter-spacing:.08em; margin-bottom:6px; }
+  .sum-value  { font-family:'Playfair Display',serif; font-size:26px; font-weight:700; line-height:1; }
+  .sum-change { font-size:11px; margin-top:5px; font-weight:600; }
+  .up   { color: #2e7d32; } /* green for price going up */
+  .down { color: #c62828; } /* red for price going down */
+
+  /* =============================================
+     SEARCH + FILTER ROW
+  ============================================= */
+  .search-filter-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .search-input-wrap {
+    flex: 1;
+    min-width: 200px;
+    position: relative;
+    /*
+      position: relative = needed so the icon inside
+      can use position: absolute relative to this box
+    */
+  }
+
+  .search-input {
+    width: 100%;
+    padding: 11px 16px 11px 42px;
+    /* left padding = 42px to make room for the search icon */
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 40px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    background: var(--white);
+    color: var(--text-dark);
+    outline: none;
+    /* outline:none = removes the ugly blue browser outline on focus */
+    transition: all 0.2s;
+  }
+
+  .search-input:focus {
+    border-color: var(--green-light);
+    box-shadow: 0 0 0 3px rgba(82,183,136,0.15);
+    /*
+      box-shadow with 0 blur and spread = like a border glow
+      rgba(82,183,136,0.15) = green color at 15% opacity
+    */
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    /* perfectly center the icon vertically */
+    font-size: 16px;
+    pointer-events: none;
+    /* pointer-events:none = clicks go through the icon to the input */
+  }
+
+  /* Filter pill buttons */
+  .filter-pills {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .pill {
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid rgba(0,0,0,0.1);
+    background: var(--white);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text-mid);
+    white-space: nowrap;
+    /* white-space:nowrap = don't wrap the text to a new line */
+  }
+
+  .pill:hover { border-color:var(--green-light); color:var(--green-mid); }
+  .pill.active { background:var(--green-light); color:var(--green-dark); border-color:var(--green-light); }
+
+  /* =============================================
+     MAIN GRID — Chart left, Cards right
+  ============================================= */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    /* 
+      1.2fr 1fr = left column is slightly wider (1.2 parts)
+      right column is 1 part
+      Total = 2.2 parts. Left = 1.2/2.2 = 54%, Right = 1/2.2 = 45%
+    */
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+
+  @media(max-width:900px) { .main-grid { grid-template-columns:1fr; } }
+
+  /* White card box used in multiple places */
+  .box {
+    background: var(--white);
+    border-radius: var(--radius-md);
+    padding: 22px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid rgba(0,0,0,0.04);
+  }
+
+  /* Box header = title + right side button */
+  .box-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+  }
+
+  .box-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-dark);
+  }
+
+  .box-title small {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-light);
+    margin-left: 6px;
+  }
+
+  /* Crop selector tabs above the chart */
+  .crop-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .crop-tab {
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid rgba(0,0,0,0.08);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text-mid);
+    background: var(--cream);
+  }
+
+  .crop-tab:hover   { border-color:var(--green-light); color:var(--green-mid); }
+  .crop-tab.active  { background:var(--green-dark); color:var(--white); border-color:var(--green-dark); }
+
+  /* Chart container */
+  .chart-wrap {
+    position: relative;
+    height: 220px;
+    /*
+      height: 220px = Chart.js needs a fixed height on its container
+      Otherwise it might not render correctly
+    */
+  }
+
+  /* =============================================
+     MANDI PRICE CARDS (right column)
+  ============================================= */
+  .mandi-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 340px;
+    overflow-y: auto;
+    /*
+      max-height + overflow-y:auto = scrollable list
+      If there are too many mandis, user can scroll
+    */
+    padding-right: 4px;
+    /* small right padding so scrollbar doesn't overlap content */
+  }
+
+  /* Custom scrollbar styling */
+  .mandi-list::-webkit-scrollbar { width: 4px; }
+  .mandi-list::-webkit-scrollbar-track { background: var(--cream); border-radius:2px; }
+  .mandi-list::-webkit-scrollbar-thumb { background: var(--green-light); border-radius:2px; }
+  /*
+    ::-webkit-scrollbar = style the scrollbar
+    Only works in Chrome/Safari/Edge (webkit browsers)
+    Firefox uses scrollbar-width property
+  */
+
+  .mandi-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(0,0,0,0.06);
+    background: var(--cream);
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .mandi-card:hover {
+    background: var(--green-pale);
+    border-color: var(--green-light);
+    transform: translateX(4px);
+    /* slides slightly right on hover */
+  }
+
+  /* The "BEST" highlighted card */
+  .mandi-card.best {
+    background: var(--green-pale);
+    border-color: var(--green-light);
+    border-width: 1.5px;
+  }
+
+  /* Gold ribbon on the best card */
+  .mandi-card.best::before {
+    content: 'BEST PRICE';
+    position: absolute;
+    top: 0; right: 0;
+    background: var(--gold);
+    color: var(--green-dark);
+    font-size: 9px;
+    font-weight: 800;
+    padding: 3px 10px;
+    border-bottom-left-radius: 8px;
+    letter-spacing: .06em;
+  }
+
+  .mandi-rank {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--white);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+    color: var(--text-mid);
+    flex-shrink: 0;
+    border: 1px solid rgba(0,0,0,0.08);
+  }
+
+  .mandi-card.best .mandi-rank {
+    background: var(--gold);
+    color: var(--green-dark);
+    border-color: transparent;
+  }
+
+  .mandi-info { flex: 1; min-width: 0; }
+  /* min-width:0 = allows the text to shrink and truncate if needed */
+
+  .mandi-name {
+    font-size: 13px; font-weight: 600;
+    color: var(--text-dark); margin-bottom: 2px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    /*
+      white-space:nowrap + overflow:hidden + text-overflow:ellipsis
+      = "Nashik Mandi Agr..." — adds ... if text is too long
+    */
+  }
+
+  .mandi-dist { font-size: 11px; color: var(--text-light); }
+
+  .mandi-price-wrap { text-align: right; }
+
+  .mandi-price {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px; font-weight: 700;
+    color: var(--green-mid);
+  }
+
+  .mandi-card.best .mandi-price { color: var(--green-dark); }
+
+  .mandi-change {
+    font-size: 11px; font-weight: 600; margin-top: 1px;
+  }
+
+  /* =============================================
+     FULL PRICE TABLE (bottom section)
+  ============================================= */
+  .table-wrap {
+    overflow-x: auto;
+    /*
+      overflow-x:auto = if table is wider than screen,
+      allow horizontal scrolling instead of breaking layout
+    */
+    border-radius: var(--radius-sm);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    /*
+      border-collapse:collapse = remove double borders
+      Each cell shares one border with adjacent cells
+    */
+    font-size: 13px;
+  }
+
+  thead th {
+    background: var(--green-dark);
+    color: rgba(255,255,255,0.85);
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    white-space: nowrap;
+  }
+
+  thead th:first-child { border-radius: var(--radius-sm) 0 0 0; }
+  /* :first-child = select the first <th> in the row */
+  thead th:last-child  { border-radius: 0 var(--radius-sm) 0 0; }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(0,0,0,0.04);
+    transition: background 0.15s;
+    cursor: pointer;
+  }
+
+  tbody tr:hover { background: var(--green-pale); }
+
+  tbody tr:last-child { border-bottom: none; }
+
+  tbody td {
+    padding: 12px 16px;
+    color: var(--text-mid);
+    vertical-align: middle;
+    /* vertical-align:middle = center content vertically in cell */
+  }
+
+  .td-crop {
+    font-weight: 600;
+    color: var(--text-dark);
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .crop-emoji { font-size: 18px; }
+
+  .td-price {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px; font-weight: 700;
+    color: var(--green-mid);
+  }
+
+  .price-badge {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 3px 8px; border-radius: 20px;
+    font-size: 11px; font-weight: 700;
+  }
+
+  .price-up   { background:#e8f5e9; color:#1b5e20; }
+  .price-down { background:#ffebee; color:#b71c1c; }
+  .price-same { background:#f5f5f5; color:#666; }
+
+  .trend-mini {
+    /* Small colored bar showing trend visually */
+    display: inline-block;
+    width: 50px; height: 6px;
+    border-radius: 3px;
+    position: relative;
+    background: rgba(0,0,0,0.06);
+    overflow: hidden;
+  }
+
+  .trend-fill {
+    position: absolute;
+    left: 0; top: 0; height: 100%;
+    border-radius: 3px;
+    background: var(--fill-color, var(--green-light));
+  }
+
+  .quality-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block; margin-right: 4px;
+  }
+
+  /* =============================================
+     ALERT SETTER SECTION
+  ============================================= */
+  .alert-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 20px;
+  }
+
+  @media(max-width:700px) { .alert-grid { grid-template-columns:1fr; } }
+
+  .alert-box {
+    background: var(--green-dark);
+    border-radius: var(--radius-md);
+    padding: 22px;
+    color: var(--white);
+  }
+
+  .alert-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px; font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .alert-sub {
+    font-size: 12px;
+    color: rgba(255,255,255,0.55);
+    margin-bottom: 18px;
+    line-height: 1.5;
+  }
+
+  .alert-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .form-row {
+    display: flex; gap: 8px;
+  }
+
+  .form-select, .form-input {
+    flex: 1;
+    padding: 10px 14px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: var(--radius-sm);
+    color: var(--white);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+    min-width: 0; /* allow shrinking */
+  }
+
+  .form-select:focus, .form-input:focus {
+    border-color: var(--green-light);
+  }
+
+  /* Style the dropdown options */
+  .form-select option { background: var(--green-dark); color: var(--white); }
+
+  .form-input::placeholder { color: rgba(255,255,255,0.35); }
+
+  .alert-btn {
+    width: 100%;
+    padding: 11px;
+    background: var(--green-light);
+    color: var(--green-dark);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-weight: 700; font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 4px;
+  }
+
+  .alert-btn:hover {
+    background: var(--white);
+    transform: translateY(-2px);
+  }
+
+  /* Active alerts list */
+  .active-alerts-box {
+    background: var(--gold-pale);
+    border: 1px solid rgba(244,162,97,0.3);
+    border-radius: var(--radius-md);
+    padding: 22px;
+  }
+
+  .active-alert-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+  }
+
+  .active-alert-item:last-child { border-bottom: none; }
+
+  .aa-icon {
+    width: 36px; height: 36px;
+    border-radius: var(--radius-sm);
+    background: var(--white);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .aa-info { flex: 1; }
+  .aa-crop   { font-size:13px; font-weight:600; color:var(--text-dark); }
+  .aa-target { font-size:11px; color:var(--text-mid); margin-top:1px; }
+
+  .aa-status {
+    font-size:11px; font-weight:600;
+    padding: 3px 9px; border-radius: 20px;
+  }
+
+  .status-wait    { background:#fff3e0; color:#e65100; }
+  .status-reached { background:#e8f5e9; color:#1b5e20; }
+
+  .aa-del {
+    background: none; border: none; cursor: pointer;
+    font-size: 14px; color: var(--text-light);
+    padding: 4px; border-radius: 4px; transition: all 0.15s;
+  }
+
+  .aa-del:hover { color: var(--danger); background: #ffebee; }
+
+  /* =============================================
+     TOAST NOTIFICATION
+  ============================================= */
+  .toast {
+    position: fixed; bottom:24px; right:24px;
+    background: var(--green-dark); color: white;
+    padding: 12px 20px; border-radius: var(--radius-sm);
+    font-size: 13px; font-weight: 500;
+    z-index: 999; display: flex; align-items: center; gap: 8px;
+    box-shadow: var(--shadow-lg);
+    transform: translateY(80px); opacity: 0;
+    transition: all 0.3s ease; max-width: 300px;
+  }
+
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* =============================================
+     OVERLAY (mobile)
+  ============================================= */
+  .overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5); z-index: 90;
+  }
+  .overlay.show { display: block; }
+
+  /* =============================================
+     FADE-IN ANIMATIONS
+  ============================================= */
+  .fade-up { animation: fadeUp 0.5s ease both; }
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(20px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  .d1{animation-delay:.1s} .d2{animation-delay:.2s}
+  .d3{animation-delay:.3s} .d4{animation-delay:.4s}
+  .d5{animation-delay:.5s} .d6{animation-delay:.6s}
+
+  /* Skeleton loading shimmer */
+  .shimmer {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    /*
+      We animate background-position to make it slide
+      This creates the "loading" effect
+    */
+    border-radius: 4px;
+  }
+
+  @keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  </style>
+</head>
+
+<body>
+
+<!-- OVERLAY for mobile sidebar -->
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span id="t-icon">✅</span>
+  <span id="t-msg">Alert set!</span>
+</div>
+
+<!-- =============================================
+     SIDEBAR
+============================================= -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-title">Gram<span>Shakti</span></div>
+    <div class="logo-tag">Village Super App</div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-label">Main</div>
+    <a class="nav-item" href="index.html">🏠 Dashboard</a>
+
+    <div class="nav-label">Farming</div>
+    <a class="nav-item" href="#">🌿 Crop Doctor <span class="nav-badge">AI</span></a>
+    <a class="nav-item" href="#">⛅ Farm Weather</a>
+    <a class="nav-item active" href="mandi.html">📊 Mandi Prices <span class="nav-badge">Live</span></a>
+    <a class="nav-item" href="#">🛒 Farm Market</a>
+
+    <div class="nav-label">Government</div>
+    <a class="nav-item" href="#">🏛️ Scheme Finder <span class="nav-badge">New</span></a>
+    <a class="nav-item" href="#">💳 Kisan Loans</a>
+
+    <div class="nav-label">Village Life</div>
+    <a class="nav-item" href="#">🏥 Health & Doctor</a>
+    <a class="nav-item" href="#">🆘 Emergency SOS</a>
+    <a class="nav-item" href="#">💼 Jobs & MNREGA</a>
+  </nav>
+
+  <div class="sidebar-bottom">
+    <div class="user-card">
+      <div class="user-avatar">👨‍🌾</div>
+      <div>
+        <div class="user-name">Raju Patil</div>
+        <div class="user-sub">Nandgaon Village</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- =============================================
+     MAIN CONTENT
+============================================= -->
+<main class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <button class="hamburger" onclick="openSidebar()">
+        <div class="ham-line"></div>
+        <div class="ham-line"></div>
+        <div class="ham-line"></div>
+      </button>
+      <div>
+        <div class="page-title">Mandi Prices</div>
+        <div class="page-sub" id="lastUpdated">Loading prices...</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="live-badge">
+        <div class="live-dot"></div>
+        Live Data
+      </div>
+      <div class="icon-btn" onclick="refreshPrices()" title="Refresh">🔄</div>
+      <div class="icon-btn" onclick="showToast('📤 Share feature coming soon!','📤')">📤</div>
+    </div>
+  </div>
+
+  <!-- PAGE CONTENT -->
+  <div class="content">
+
+    <!-- SUMMARY CARDS -->
+    <div class="summary-bar">
+
+      <div class="sum-card fade-up d1" style="--top-color:#52b788"
+           onclick="selectCrop('wheat')">
+        <div class="sum-label">Wheat — Avg Today</div>
+        <div class="sum-value" id="s-wheat">₹1,240</div>
+        <div class="sum-change up" id="sc-wheat">↑ ₹38 from yesterday</div>
+      </div>
+
+      <div class="sum-card fade-up d2" style="--top-color:#f4a261"
+           onclick="selectCrop('tomato')">
+        <div class="sum-label">Tomato — Avg Today</div>
+        <div class="sum-value" id="s-tomato">₹840</div>
+        <div class="sum-change up" id="sc-tomato">↑ ₹80 — sell now!</div>
+      </div>
+
+      <div class="sum-card fade-up d3" style="--top-color:#4cc9f0"
+           onclick="selectCrop('onion')">
+        <div class="sum-label">Onion — Avg Today</div>
+        <div class="sum-value" id="s-onion">₹620</div>
+        <div class="sum-change down" id="sc-onion">↓ ₹30 — prices falling</div>
+      </div>
+
+      <div class="sum-card fade-up d4" style="--top-color:#e63946"
+           onclick="selectCrop('cotton')">
+        <div class="sum-label">Cotton — Avg Today</div>
+        <div class="sum-value" id="s-cotton">₹5,840</div>
+        <div class="sum-change up" id="sc-cotton">↑ ₹120 this week</div>
+      </div>
+
+    </div>
+
+    <!-- SEARCH + FILTER -->
+    <div class="search-filter-row fade-up d2">
+      <div class="search-input-wrap">
+        <span class="search-icon">🔍</span>
+        <input
+          class="search-input"
+          id="searchInput"
+          type="text"
+          placeholder="Search crop or mandi name..."
+          oninput="filterTable()"
+          /*
+            oninput = fires EVERY TIME user types a character
+            filterTable() = our JS function to filter the table rows
+          */
+        />
+      </div>
+      <div class="filter-pills">
+        <div class="pill active" onclick="filterCategory('all', this)">All Crops</div>
+        <div class="pill" onclick="filterCategory('grain', this)">Grains</div>
+        <div class="pill" onclick="filterCategory('vegetable', this)">Vegetables</div>
+        <div class="pill" onclick="filterCategory('cash', this)">Cash Crops</div>
+      </div>
+    </div>
+
+    <!-- MAIN GRID: Chart + Mandi Cards -->
+    <div class="main-grid fade-up d3">
+
+      <!-- LEFT: Price Trend Chart -->
+      <div class="box">
+        <div class="box-header">
+          <div class="box-title">Price Trend <small>— last 30 days</small></div>
+          <div style="font-size:12px;color:var(--text-light)" id="chartCropLabel">Wheat</div>
+        </div>
+        <!-- Crop selector tabs -->
+        <div class="crop-tabs" id="cropTabs">
+          <div class="crop-tab active" onclick="selectCrop('wheat', this)">🌾 Wheat</div>
+          <div class="crop-tab" onclick="selectCrop('tomato', this)">🍅 Tomato</div>
+          <div class="crop-tab" onclick="selectCrop('onion', this)">🧅 Onion</div>
+          <div class="crop-tab" onclick="selectCrop('cotton', this)">🌿 Cotton</div>
+          <div class="crop-tab" onclick="selectCrop('rice', this)">🌾 Rice</div>
+        </div>
+        <!-- Chart.js draws into this canvas element -->
+        <div class="chart-wrap">
+          <canvas id="priceChart"></canvas>
+          <!--
+            <canvas> = an HTML element that JS can draw on
+            Chart.js uses this canvas to draw the chart
+            We never put content inside canvas directly
+          -->
+        </div>
+      </div>
+
+      <!-- RIGHT: Best Mandi Cards -->
+      <div class="box">
+        <div class="box-header">
+          <div class="box-title">Nearby Mandis <small id="mandiCrop">— Wheat</small></div>
+          <span style="font-size:11px;background:var(--green-pale);color:var(--green-mid);padding:4px 10px;border-radius:20px;font-weight:600">
+            📍 Within 100km
+          </span>
+        </div>
+        <!-- Mandi cards are injected here by JavaScript -->
+        <div class="mandi-list" id="mandiList"></div>
+      </div>
+
+    </div>
+
+    <!-- FULL DATA TABLE -->
+    <div class="box fade-up d4" style="margin-bottom:24px">
+      <div class="box-header">
+        <div class="box-title">All Crop Prices <small id="tableCount"></small></div>
+        <button
+          style="font-size:12px;background:var(--cream);border:1px solid rgba(0,0,0,0.1);padding:7px 14px;border-radius:20px;cursor:pointer;font-family:inherit;font-weight:600;color:var(--text-mid);transition:all .2s"
+          onclick="downloadCSV()"
+          onmouseover="this.style.borderColor='var(--green-light)'"
+          onmouseout="this.style.borderColor='rgba(0,0,0,0.1)'"
+        >
+          ⬇️ Download CSV
+        </button>
+      </div>
+      <div class="table-wrap">
+        <table id="priceTable">
+          <thead>
+            <tr>
+              <th onclick="sortTable(0)">Crop ↕</th>
+              <th onclick="sortTable(1)">Today's Price ↕</th>
+              <th onclick="sortTable(2)">Yesterday ↕</th>
+              <th onclick="sortTable(3)">Change ↕</th>
+              <th>30-Day Trend</th>
+              <th onclick="sortTable(5)">Quality ↕</th>
+              <th>Category</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <!-- Rows filled by JavaScript below -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ALERT SETTER + ACTIVE ALERTS -->
+    <div class="alert-grid fade-up d5">
+
+      <!-- Set New Alert -->
+      <div class="alert-box">
+        <div class="alert-title">🔔 Set Price Alert</div>
+        <div class="alert-sub">We will notify you when your crop reaches your target price</div>
+        <div class="alert-form">
+          <div class="form-row">
+            <select class="form-select" id="alertCrop">
+              <option>Wheat 🌾</option>
+              <option>Tomato 🍅</option>
+              <option>Onion 🧅</option>
+              <option>Cotton 🌿</option>
+              <option>Rice 🌾</option>
+              <option>Soybean 🫘</option>
+              <option>Maize 🌽</option>
+            </select>
+            <select class="form-select" id="alertType">
+              <option value="above">Above ↑</option>
+              <option value="below">Below ↓</option>
+            </select>
+          </div>
+          <input
+            class="form-input"
+            id="alertPrice"
+            type="number"
+            placeholder="Enter target price (₹ per quintal)"
+          />
+          <input
+            class="form-input"
+            id="alertPhone"
+            type="tel"
+            placeholder="Mobile number for SMS alert"
+          />
+          <button class="alert-btn" onclick="setAlert()">
+            🔔 Set Alert — Notify Me
+          </button>
+        </div>
+      </div>
+
+      <!-- Active Alerts list -->
+      <div class="active-alerts-box">
+        <div class="box-header" style="margin-bottom:14px">
+          <div class="box-title" style="color:var(--text-dark)">
+            Active Alerts <small id="alertCount">(2)</small>
+          </div>
+        </div>
+        <div id="alertsList"></div>
+      </div>
+
+    </div>
+
+  </div><!-- end .content -->
+</main>
+
+<!-- =============================================
+     JAVASCRIPT — All the logic
+============================================= -->
+<script>
+
+// ============================================================
+// 1. ALL CROP DATA
+// In a real app, this would come from an API (fetch call)
+// For now we store it here as a JavaScript object
+// ============================================================
+
+/*
+  A JavaScript OBJECT = collection of key:value pairs
+  Like a dictionary in real life
+  crops['wheat'] = the wheat data object
+*/
+var crops = {
+  wheat: {
+    name: 'Wheat', emoji: '🌾', category: 'grain',
+    today: 1240, yesterday: 1202, unit: '₹/qtl',
+    /*
+      Array = list of values in square brackets []
+      These are the last 30 days of prices
+      Generated randomly but realistic
+    */
+    history: [1100,1110,1095,1120,1130,1115,1140,1160,1145,1170,
+              1180,1165,1190,1200,1185,1210,1195,1215,1205,1220,
+              1210,1225,1215,1230,1218,1235,1228,1240,1235,1240],
+    quality: 'A Grade', color: '#52b788',
+    mandis: [
+      { name:'Nashik Mandi',    dist:'12 km', price:1280, change:+45 },
+      { name:'Pune APMC',       dist:'34 km', price:1265, change:+28 },
+      { name:'Aurangabad Mkt',  dist:'58 km', price:1240, change:+12 },
+      { name:'Nagpur APMC',     dist:'82 km', price:1220, change:-5  },
+      { name:'Latur Mandi',     dist:'97 km', price:1195, change:-18 },
+    ]
+  },
+  tomato: {
+    name: 'Tomato', emoji: '🍅', category: 'vegetable',
+    today: 840, yesterday: 760, unit: '₹/qtl',
+    history: [500,520,510,540,530,560,550,580,570,600,
+              590,620,610,640,630,660,650,680,670,700,
+              710,720,740,730,760,750,780,800,820,840],
+    quality: 'A Grade', color: '#e63946',
+    mandis: [
+      { name:'Nashik APMC',     dist:'8 km',  price:880, change:+90 },
+      { name:'Lasalgaon Mkt',   dist:'22 km', price:860, change:+75 },
+      { name:'Sangamner Mdi',   dist:'41 km', price:840, change:+55 },
+      { name:'Pune Mandi',      dist:'67 km', price:820, change:+40 },
+      { name:'Mumbai APMC',     dist:'89 km', price:800, change:+20 },
+    ]
+  },
+  onion: {
+    name: 'Onion', emoji: '🧅', category: 'vegetable',
+    today: 620, yesterday: 650, unit: '₹/qtl',
+    history: [700,690,710,695,680,695,700,690,680,670,
+              680,675,665,670,660,655,650,645,650,640,
+              645,638,630,635,628,622,618,620,622,620],
+    quality: 'B Grade', color: '#f4a261',
+    mandis: [
+      { name:'Lasalgaon APMC',  dist:'18 km', price:640, change:-25 },
+      { name:'Niphad Mandi',    dist:'28 km', price:628, change:-30 },
+      { name:'Malegaon Mkt',    dist:'45 km', price:620, change:-38 },
+      { name:'Dindori Mandi',   dist:'62 km', price:608, change:-42 },
+      { name:'Kalwan Mkt',      dist:'78 km', price:595, change:-50 },
+    ]
+  },
+  cotton: {
+    name: 'Cotton', emoji: '🌿', category: 'cash',
+    today: 5840, yesterday: 5720, unit: '₹/qtl',
+    history: [5200,5250,5220,5280,5260,5300,5280,5320,5310,5350,
+              5340,5380,5360,5400,5380,5420,5410,5450,5440,5480,
+              5520,5560,5600,5640,5680,5720,5760,5800,5820,5840],
+    quality: 'A Grade', color: '#7b2d8b',
+    mandis: [
+      { name:'Akola APMC',      dist:'24 km', price:5920, change:+140 },
+      { name:'Amravati Mkt',    dist:'38 km', price:5880, change:+120 },
+      { name:'Yavatmal Mdi',    dist:'52 km', price:5840, change:+100 },
+      { name:'Wardha Mandi',    dist:'68 km', price:5800, change:+80  },
+      { name:'Nanded APMC',     dist:'90 km', price:5760, change:+60  },
+    ]
+  },
+  rice: {
+    name: 'Rice', emoji: '🌾', category: 'grain',
+    today: 1820, yesterday: 1800, unit: '₹/qtl',
+    history: [1680,1700,1690,1710,1720,1715,1730,1740,1735,1750,
+              1745,1760,1755,1770,1765,1780,1775,1790,1785,1800,
+              1795,1805,1800,1810,1805,1815,1810,1818,1815,1820],
+    quality: 'A Grade', color: '#4cc9f0',
+    mandis: [
+      { name:'Ratnagiri APMC',  dist:'30 km', price:1860, change:+30 },
+      { name:'Kolhapur Mkt',    dist:'45 km', price:1840, change:+22 },
+      { name:'Sangli Mandi',    dist:'60 km', price:1820, change:+15 },
+      { name:'Satara Mkt',      dist:'72 km', price:1810, change:+8  },
+      { name:'Pune APMC',       dist:'88 km', price:1800, change:0   },
+    ]
+  },
+  soybean: {
+    name: 'Soybean', emoji: '🫘', category: 'cash',
+    today: 4200, yesterday: 4150, unit: '₹/qtl',
+    history: [3800,3850,3820,3870,3860,3890,3880,3910,3900,3930,
+              3920,3950,3940,3970,3960,3990,4000,4020,4010,4040,
+              4050,4070,4080,4100,4090,4120,4130,4150,4160,4200],
+    quality: 'A Grade', color: '#52b788',
+    mandis: [
+      { name:'Latur APMC',      dist:'15 km', price:4280, change:+85 },
+      { name:'Osmanabad Mkt',   dist:'30 km', price:4250, change:+65 },
+      { name:'Nanded Mandi',    dist:'48 km', price:4200, change:+40 },
+      { name:'Hingoli APMC',    dist:'62 km', price:4180, change:+25 },
+      { name:'Parbhani Mkt',    dist:'80 km', price:4150, change:+5  },
+    ]
+  },
+  maize: {
+    name: 'Maize', emoji: '🌽', category: 'grain',
+    today: 1380, yesterday: 1365, unit: '₹/qtl',
+    history: [1200,1210,1205,1220,1215,1225,1220,1235,1230,1245,
+              1240,1255,1250,1265,1260,1275,1270,1285,1280,1300,
+              1310,1320,1330,1340,1350,1355,1360,1368,1372,1380],
+    quality: 'B Grade', color: '#f4a261',
+    mandis: [
+      { name:'Dhule APMC',      dist:'20 km', price:1420, change:+28 },
+      { name:'Jalgaon Mkt',     dist:'35 km', price:1400, change:+18 },
+      { name:'Nandurbar Mdi',   dist:'55 km', price:1380, change:+8  },
+      { name:'Shirpur Mandi',   dist:'70 km', price:1365, change:-5  },
+      { name:'Shahada APMC',    dist:'85 km', price:1350, change:-15 },
+    ]
+  }
+};
+
+// ============================================================
+// 2. CHART.JS SETUP
+// Draw the price trend line chart
+// ============================================================
+
+/*
+  We declare chart variable outside the function
+  So we can access it to DESTROY it before redrawing
+  If we don't destroy it first, charts overlap and look broken
+*/
+var priceChartInstance = null;
+
+function drawChart(cropKey) {
+  /*
+    cropKey = 'wheat' or 'tomato' etc.
+    This function draws the 30-day price chart for that crop
+  */
+
+  var crop = crops[cropKey];
+  /*
+    Look up the crop data using cropKey
+    crops['wheat'] = the wheat object
+  */
+
+  // Create labels: "Day 1", "Day 2", ... "Day 30"
+  var labels = [];
+  /*
+    var labels = [] = create an empty array
+    We'll push items into it
+  */
+  for (var i = 1; i <= 30; i++) {
+    /*
+      for loop:
+      i = 1 (start), i <= 30 (condition), i++ (increment by 1 each time)
+      Runs 30 times: i = 1, 2, 3, ..., 30
+    */
+    labels.push('Day ' + i);
+    /*
+      .push(value) = add value to end of array
+      After loop: labels = ['Day 1', 'Day 2', ..., 'Day 30']
+    */
+  }
+
+  // Destroy old chart before creating new one
+  if (priceChartInstance) {
+    priceChartInstance.destroy();
+    /*
+      .destroy() = Chart.js method to remove old chart from canvas
+      Necessary before drawing a new one on same canvas
+    */
+  }
+
+  var ctx = document.getElementById('priceChart').getContext('2d');
+  /*
+    .getContext('2d') = get the 2D drawing context of the canvas
+    This is what Chart.js needs to draw on the canvas
+    '2d' = two-dimensional canvas context
+  */
+
+  priceChartInstance = new Chart(ctx, {
+    /*
+      new Chart(canvas, config) = create a Chart.js chart
+      We pass the canvas context and a configuration object
+    */
+
+    type: 'line',
+    /*
+      type: 'line' = draw a line chart
+      Other options: 'bar', 'pie', 'doughnut', 'radar'
+    */
+
+    data: {
+      labels: labels,
+      /*
+        labels = the X-axis labels (Day 1, Day 2, ...)
+      */
+
+      datasets: [
+        /*
+          datasets = array of data series to plot
+          We have 2: the actual price line + a target reference line
+        */
+        {
+          label: crop.name + ' Price (₹/qtl)',
+          data: crop.history,
+          /*
+            data = the actual numbers to plot
+            crop.history = our 30-day price array
+          */
+
+          borderColor: crop.color,
+          /* borderColor = the line color */
+
+          backgroundColor: crop.color + '18',
+          /*
+            crop.color + '18' = add '18' (hex for 9% opacity) to color
+            e.g. '#52b788' + '18' = '#52b78818' = semi-transparent
+            This fills the area under the line
+          */
+
+          borderWidth: 2.5,
+          fill: true,
+          /* fill: true = fill the area under the line */
+
+          tension: 0.4,
+          /*
+            tension: 0.4 = curves the line (0 = straight, 1 = very curvy)
+          */
+
+          pointRadius: 0,
+          /* pointRadius: 0 = hide the dots on each data point */
+
+          pointHoverRadius: 6,
+          /* pointHoverRadius: 6 = show dots when mouse hovers */
+
+          pointHoverBackgroundColor: crop.color,
+          pointHoverBorderColor: '#fff',
+          pointHoverBorderWidth: 2,
+        },
+        {
+          /* Dashed "yesterday's price" reference line */
+          label: 'Yesterday',
+          data: Array(30).fill(crop.yesterday),
+          /*
+            Array(30).fill(value) = create array of 30 items,
+            all with the same value
+            e.g. [1202, 1202, 1202, ... 30 times]
+            This draws a flat horizontal reference line
+          */
+          borderColor: 'rgba(0,0,0,0.2)',
+          borderWidth: 1,
+          borderDash: [4, 4],
+          /*
+            borderDash: [4, 4] = dashed line
+            [4, 4] = 4px dash, 4px gap, repeat
+          */
+          fill: false,
+          pointRadius: 0,
+          tension: 0,
+        }
+      ]
+    },
+
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      /*
+        responsive: true = chart resizes with its container
+        maintainAspectRatio: false = don't keep original ratio,
+        let height be controlled by our CSS (220px)
+      */
+
+      interaction: {
+        mode: 'index',
+        /* mode: 'index' = show tooltip for all datasets at same x position */
+        intersect: false,
+        /* intersect: false = show tooltip even if not directly on a point */
+      },
+
+      plugins: {
+        legend: { display: false },
+        /* legend = the color key. We hide it to save space */
+
+        tooltip: {
+          /* Customize the popup that appears on hover */
+          backgroundColor: 'rgba(26,60,46,0.95)',
+          titleColor: '#d8f3dc',
+          bodyColor: 'rgba(255,255,255,0.85)',
+          borderColor: 'rgba(82,183,136,0.4)',
+          borderWidth: 1,
+          padding: 12,
+          callbacks: {
+            /*
+              callbacks = functions that customize tooltip text
+            */
+            label: function(context) {
+              /*
+                context.parsed.y = the Y value (price number)
+                We format it nicely as "₹ 1,240 /qtl"
+              */
+              if (context.datasetIndex === 0) {
+                return '₹ ' + context.parsed.y.toLocaleString('en-IN') + ' /qtl';
+                /* toLocaleString('en-IN') = Indian number format: 1,240 */
+              }
+              return 'Yesterday: ₹ ' + context.parsed.y.toLocaleString('en-IN');
+            }
+          }
+        }
+      },
+
+      scales: {
+        /* scales = configure the X and Y axes */
+        x: {
+          grid: { color: 'rgba(0,0,0,0.04)', drawBorder: false },
+          ticks: {
+            color: '#aaa',
+            font: { size: 10 },
+            maxTicksLimit: 8,
+            /* maxTicksLimit: 8 = show max 8 labels on x-axis (not all 30) */
+          }
+        },
+        y: {
+          grid: { color: 'rgba(0,0,0,0.04)', drawBorder: false },
+          ticks: {
+            color: '#aaa',
+            font: { size: 10 },
+            callback: function(value) {
+              return '₹' + value.toLocaleString('en-IN');
+              /* Add ₹ symbol to Y-axis numbers */
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+
+// ============================================================
+// 3. RENDER MANDI CARDS (right column)
+// ============================================================
+
+function renderMandis(cropKey) {
+  var crop   = crops[cropKey];
+  var list   = document.getElementById('mandiList');
+  var label  = document.getElementById('mandiCrop');
+
+  label.textContent = '— ' + crop.name;
+
+  /*
+    .map(function) = loop through array and transform each item
+    Returns a NEW array of transformed items
+
+    .join('') = join all array items into one string
+    (with empty string '' between items = no separator)
+
+    We then set innerHTML = all the HTML cards as one big string
+  */
+  list.innerHTML = crop.mandis
+    .sort(function(a, b) { return b.price - a.price; })
+    /*
+      .sort(compareFn) = sort the array
+      b.price - a.price = sort by price DESCENDING (highest first)
+      If result > 0 = b comes before a
+      If result < 0 = a comes before b
+    */
+    .map(function(mandi, index) {
+      var isBest  = index === 0;
+      /* index === 0 = this is the first (highest price) mandi */
+
+      var isUp    = mandi.change > 0;
+      var isDown  = mandi.change < 0;
+      var arrow   = isUp ? '↑' : isDown ? '↓' : '→';
+      var clrCls  = isUp ? 'up' : isDown ? 'down' : '';
+
+      return `
+        <div class="mandi-card ${isBest ? 'best' : ''}"
+             onclick="showToast('🗺️ Navigating to ${mandi.name}...', '🗺️')">
+          <div class="mandi-rank">${index + 1}</div>
+          <div class="mandi-info">
+            <div class="mandi-name">${mandi.name}</div>
+            <div class="mandi-dist">📍 ${mandi.dist} away</div>
+          </div>
+          <div class="mandi-price-wrap">
+            <div class="mandi-price">₹${mandi.price.toLocaleString('en-IN')}</div>
+            <div class="mandi-change ${clrCls}">${arrow} ₹${Math.abs(mandi.change)} today</div>
+          </div>
+        </div>
+      `;
+      /*
+        Template literal (backtick string):
+        We can put variables directly inside ${...}
+        This is much easier than string + concatenation
+      */
+    })
+    .join('');
+}
+
+
+// ============================================================
+// 4. RENDER THE FULL PRICE TABLE
+// ============================================================
+
+var currentCategory = 'all';
+/* Store which filter is active so search can use it too */
+
+function renderTable(category) {
+  currentCategory = category || currentCategory;
+  var searchTerm  = document.getElementById('searchInput').value.toLowerCase();
+  /*
+    .toLowerCase() = convert to lowercase
+    So searching "WHEAT" also finds "wheat"
+  */
+
+  var rows = '';
+  /* rows = empty string, we'll add HTML to it */
+
+  var count = 0;
+
+  for (var key in crops) {
+    /*
+      for (var key in object) = loop through all keys of an object
+      key = 'wheat', 'tomato', 'onion', etc.
+    */
+    var crop = crops[key];
+
+    /* Skip if category filter doesn't match */
+    if (currentCategory !== 'all' && crop.category !== currentCategory) continue;
+    /*
+      continue = skip this iteration, go to next key
+    */
+
+    /* Skip if search term doesn't match */
+    if (searchTerm && !crop.name.toLowerCase().includes(searchTerm)) continue;
+    /*
+      .includes(text) = returns true if text is found inside the string
+      !includes = NOT found = skip this crop
+    */
+
+    var change    = crop.today - crop.yesterday;
+    var changePct = ((change / crop.yesterday) * 100).toFixed(1);
+    /*
+      (change / yesterday) * 100 = percentage change
+      .toFixed(1) = round to 1 decimal place: 3.1234 → "3.1"
+    */
+
+    var arrowSign = change > 0 ? '↑' : change < 0 ? '↓' : '→';
+    var priceCls  = change > 0 ? 'price-up' : change < 0 ? 'price-down' : 'price-same';
+
+    /* Mini trend bar: how full it is = today's price as % of max */
+    var maxPrice  = Math.max.apply(null, crop.history);
+    /*
+      Math.max.apply(null, array) = find the highest value in an array
+      Math.max(...array) also works (spread operator) but apply is safer
+    */
+    var trendPct  = Math.round((crop.today / maxPrice) * 100);
+    var trendColor= change >= 0 ? '#52b788' : '#e63946';
+
+    var qualColor = crop.quality === 'A Grade' ? '#52b788' : '#f4a261';
+
+    var catLabel = { grain:'Grain', vegetable:'Vegetable', cash:'Cash Crop' }[crop.category];
+
+    rows += `
+      <tr onclick="selectCrop('${key}')" title="Click to see ${crop.name} chart">
+        <td>
+          <div class="td-crop">
+            <span class="crop-emoji">${crop.emoji}</span>
+            ${crop.name}
+          </div>
+        </td>
+        <td class="td-price">₹${crop.today.toLocaleString('en-IN')}</td>
+        <td style="color:var(--text-light)">₹${crop.yesterday.toLocaleString('en-IN')}</td>
+        <td>
+          <span class="price-badge ${priceCls}">
+            ${arrowSign} ₹${Math.abs(change)} (${changePct}%)
+          </span>
+        </td>
+        <td>
+          <div class="trend-mini">
+            <div class="trend-fill" style="width:${trendPct}%;--fill-color:${trendColor}"></div>
+          </div>
+        </td>
+        <td>
+          <span class="quality-dot" style="background:${qualColor}"></span>
+          ${crop.quality}
+        </td>
+        <td style="color:var(--text-light);font-size:12px">${catLabel}</td>
+      </tr>
+    `;
+    count++;
+  }
+
+  document.getElementById('tableBody').innerHTML = rows;
+  document.getElementById('tableCount').textContent = '— ' + count + ' crops';
+}
+
+
+// ============================================================
+// 5. SELECT CROP — updates chart, mandis, and tabs
+// ============================================================
+
+function selectCrop(cropKey, tabElement) {
+  /* If we don't have data for this crop, use wheat */
+  if (!crops[cropKey]) cropKey = 'wheat';
+
+  /* Update all crop tabs — remove active from all, add to clicked */
+  document.querySelectorAll('.crop-tab').forEach(function(tab) {
+    tab.classList.remove('active');
+  });
+
+  if (tabElement) {
+    tabElement.classList.add('active');
+  } else {
+    /* Find the tab that matches this cropKey and activate it */
+    document.querySelectorAll('.crop-tab').forEach(function(tab) {
+      if (tab.textContent.toLowerCase().includes(cropKey.toLowerCase())) {
+        tab.classList.add('active');
+      }
+    });
+  }
+
+  /* Update chart crop label */
+  document.getElementById('chartCropLabel').textContent = crops[cropKey].name;
+
+  /* Redraw chart with new crop data */
+  drawChart(cropKey);
+
+  /* Reload mandi cards */
+  renderMandis(cropKey);
+
+  showToast('📊 Showing ' + crops[cropKey].name + ' prices', crops[cropKey].emoji);
+}
+
+
+// ============================================================
+// 6. FILTER + SEARCH
+// ============================================================
+
+function filterCategory(cat, btn) {
+  /* Update active pill button */
+  document.querySelectorAll('.pill').forEach(function(p) { p.classList.remove('active'); });
+  btn.classList.add('active');
+
+  /* Re-render table with new filter */
+  renderTable(cat);
+}
+
+function filterTable() {
+  /* Called on every keystroke in search box */
+  renderTable(currentCategory);
+}
+
+
+// ============================================================
+// 7. SORT TABLE — click column header to sort
+// ============================================================
+
+var sortCol = -1;     /* which column we sorted last */
+var sortAsc = true;   /* ascending or descending */
+
+function sortTable(colIndex) {
+  /*
+    colIndex = which column was clicked (0 = crop name, 1 = price, etc.)
+  */
+
+  if (sortCol === colIndex) {
+    sortAsc = !sortAsc;
+    /* If clicking same column again, reverse the sort direction */
+  } else {
+    sortCol = colIndex;
+    sortAsc = true;
+  }
+
+  var tbody = document.getElementById('tableBody');
+  var rows  = Array.from(tbody.querySelectorAll('tr'));
+  /*
+    Array.from() = convert a NodeList to a regular JavaScript array
+    NodeList = what querySelectorAll returns (like an array but not one)
+    We need a real array to use .sort()
+  */
+
+  rows.sort(function(a, b) {
+    var aVal = a.cells[colIndex].textContent.trim();
+    var bVal = b.cells[colIndex].textContent.trim();
+    /*
+      .cells[colIndex] = get the cell at position colIndex in the row
+      .textContent = get the text inside that cell
+      .trim() = remove any spaces at start and end
+    */
+
+    /* Try to sort as numbers first */
+    var aNum = parseFloat(aVal.replace(/[₹,↑↓→%]/g, ''));
+    var bNum = parseFloat(bVal.replace(/[₹,↑↓→%]/g, ''));
+    /*
+      .replace(/[₹,↑↓→%]/g, '') = remove these special characters
+      /[₹,↑↓→%]/g = regular expression (pattern)
+      [₹,↑↓→%] = any of these characters
+      g = global flag = replace ALL occurrences (not just first)
+      parseFloat() = convert string to decimal number
+    */
+
+    if (!isNaN(aNum) && !isNaN(bNum)) {
+      /* isNaN = "is Not a Number". !isNaN = "IS a number" */
+      return sortAsc ? aNum - bNum : bNum - aNum;
+      /*
+        aNum - bNum = ascending (smaller first)
+        bNum - aNum = descending (larger first)
+      */
+    }
+
+    /* Otherwise sort as text (alphabetically) */
+    return sortAsc
+      ? aVal.localeCompare(bVal)
+      : bVal.localeCompare(aVal);
+    /*
+      .localeCompare() = compare strings alphabetically
+      Returns negative, 0, or positive (like the sort comparator needs)
+    */
+  });
+
+  /* Remove all rows and re-add them in sorted order */
+  rows.forEach(function(row) { tbody.appendChild(row); });
+  /*
+    .appendChild() = add element as last child
+    By appending in our sorted order, the table re-orders
+  */
+}
+
+
+// ============================================================
+// 8. PRICE ALERTS SYSTEM
+// ============================================================
+
+var activeAlerts = [
+  /* Default alerts already set */
+  { crop:'Tomato 🍅', type:'above', target:900, phone:'98765XXXXX', id: Date.now() - 1 },
+  { crop:'Onion 🧅',  type:'below', target:600, phone:'98765XXXXX', id: Date.now() - 2 },
+];
+
+function renderAlerts() {
+  var list  = document.getElementById('alertsList');
+  var count = document.getElementById('alertCount');
+
+  count.textContent = '(' + activeAlerts.length + ')';
+
+  if (activeAlerts.length === 0) {
+    list.innerHTML = '<div style="text-align:center;color:var(--text-light);padding:20px;font-size:13px">No alerts set yet</div>';
+    return;
+    /* return = exit the function early, don't run code below */
+  }
+
+  list.innerHTML = activeAlerts.map(function(alert) {
+    var icon = alert.type === 'above' ? '↑' : '↓';
+    return `
+      <div class="active-alert-item">
+        <div class="aa-icon">🔔</div>
+        <div class="aa-info">
+          <div class="aa-crop">${alert.crop}</div>
+          <div class="aa-target">${icon} Target: ₹${alert.target.toLocaleString('en-IN')}/qtl</div>
+        </div>
+        <span class="aa-status status-wait">Waiting</span>
+        <button class="aa-del" onclick="deleteAlert(${alert.id})" title="Delete alert">✕</button>
+      </div>
+    `;
+  }).join('');
+}
+
+function setAlert() {
+  var crop  = document.getElementById('alertCrop').value;
+  var type  = document.getElementById('alertType').value;
+  var price = document.getElementById('alertPrice').value;
+  var phone = document.getElementById('alertPhone').value;
+  /*
+    .value = get the current value of an input/select element
+  */
+
+  /* VALIDATION — check all fields are filled */
+  if (!price || price <= 0) {
+    showToast('⚠️ Please enter a valid target price', '⚠️');
+    return;
+  }
+  if (!phone || phone.length < 10) {
+    showToast('⚠️ Please enter a valid phone number', '⚠️');
+    return;
+  }
+
+  /* Create a new alert object */
+  var newAlert = {
+    crop:   crop,
+    type:   type,
+    target: parseInt(price),
+    phone:  phone,
+    id:     Date.now(),
+    /* Date.now() = current timestamp in milliseconds — unique ID */
+  };
+
+  /* Add to our alerts array */
+  activeAlerts.push(newAlert);
+
+  /* Re-render the alerts list */
+  renderAlerts();
+
+  /* Clear form inputs */
+  document.getElementById('alertPrice').value = '';
+  document.getElementById('alertPhone').value = '';
+
+  showToast('✅ Alert set! We\'ll SMS you when ' + crop + ' hits ₹' + parseInt(price).toLocaleString('en-IN'), '🔔');
+}
+
+function deleteAlert(id) {
+  activeAlerts = activeAlerts.filter(function(alert) {
+    return alert.id !== id;
+    /*
+      .filter(fn) = create NEW array keeping only items where fn returns true
+      alert.id !== id = keep alerts that DON'T match this id
+      (removes the one we want to delete)
+    */
+  });
+  renderAlerts();
+  showToast('🗑️ Alert deleted', '🗑️');
+}
+
+
+// ============================================================
+// 9. SIMULATE LIVE PRICE UPDATES
+// Prices change slightly every few seconds (like real market)
+// ============================================================
+
+function simulateLivePrices() {
+  for (var key in crops) {
+    var crop = crops[key];
+    var fluctuation = Math.floor(Math.random() * 21) - 10;
+    /*
+      Math.random() = random decimal between 0 and 1
+      * 21 = between 0 and 21
+      Math.floor() = round DOWN to whole number = 0 to 20
+      - 10 = between -10 and +10
+      So price changes by -10 to +10 randomly each cycle
+    */
+    crop.today = Math.max(100, crop.today + fluctuation);
+    /* Math.max(100, ...) = price never goes below ₹100 */
+
+    /* Update the history too (add new day, remove oldest) */
+    crop.history.push(crop.today);
+    crop.history.shift();
+    /*
+      .push(value) = add to END of array
+      .shift() = REMOVE from START of array
+      This creates a "moving window" of last 30 days
+    */
+  }
+
+  /* Update summary cards */
+  document.getElementById('s-wheat').textContent  = '₹' + crops.wheat.today.toLocaleString('en-IN');
+  document.getElementById('s-tomato').textContent = '₹' + crops.tomato.today.toLocaleString('en-IN');
+  document.getElementById('s-onion').textContent  = '₹' + crops.onion.today.toLocaleString('en-IN');
+  document.getElementById('s-cotton').textContent = '₹' + crops.cotton.today.toLocaleString('en-IN');
+
+  /* Update timestamp */
+  var now = new Date();
+  document.getElementById('lastUpdated').textContent =
+    'Last updated: ' + now.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+  /*
+    toLocaleTimeString = format time based on locale
+    { hour:'2-digit', minute:'2-digit' } = "09:45 AM"
+  */
+}
+
+setInterval(simulateLivePrices, 8000);
+/* Update prices every 8 seconds to simulate live market */
+
+
+// ============================================================
+// 10. DOWNLOAD CSV
+// ============================================================
+
+function downloadCSV() {
+  /* CSV = Comma Separated Values — opens in Excel */
+
+  var csvContent = 'Crop,Today Price,Yesterday,Change,Quality,Category\n';
+  /*
+    First row = headers
+    \n = newline character (go to next line)
+  */
+
+  for (var key in crops) {
+    var c      = crops[key];
+    var change = c.today - c.yesterday;
+    csvContent += c.name + ',' + c.today + ',' + c.yesterday + ',' + change + ',' + c.quality + ',' + c.category + '\n';
+    /* Each crop = one row in the CSV */
+  }
+
+  var blob = new Blob([csvContent], { type: 'text/csv' });
+  /*
+    Blob = Binary Large Object = raw file data
+    We create a virtual file in memory
+    type: 'text/csv' = it's a CSV file
+  */
+
+  var url  = URL.createObjectURL(blob);
+  /*
+    URL.createObjectURL() = create a temporary URL pointing to our blob
+    This URL looks like: blob:https://... 
+  */
+
+  var a       = document.createElement('a');
+  a.href      = url;
+  a.download  = 'mandi-prices-' + new Date().toLocaleDateString('en-IN') + '.csv';
+  /* download attribute = filename when saved */
+
+  document.body.appendChild(a);
+  a.click();
+  /* Simulate a click on the link = triggers download */
+
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  /* Cleanup: remove the link and free the memory */
+
+  showToast('⬇️ CSV downloaded! Open in Excel', '📊');
+}
+
+
+// ============================================================
+// 11. REFRESH BUTTON
+// ============================================================
+
+function refreshPrices() {
+  simulateLivePrices();
+  renderTable(currentCategory);
+  showToast('🔄 Prices refreshed!', '✅');
+}
+
+
+// ============================================================
+// 12. SIDEBAR MOBILE FUNCTIONS
+// ============================================================
+
+function openSidebar()  {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('overlay').classList.add('show');
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+
+// ============================================================
+// 13. TOAST NOTIFICATION
+// ============================================================
+
+var toastTimer = null;
+
+function showToast(msg, icon) {
+  var toast = document.getElementById('toast');
+  document.getElementById('t-msg').textContent  = msg;
+  document.getElementById('t-icon').textContent = icon || '✅';
+  toast.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(function() { toast.classList.remove('show'); }, 3000);
+}
+
+
+// ============================================================
+// 14. INITIALISE — Run when page loads
+// ============================================================
+
+window.addEventListener('load', function() {
+
+  /* Draw the initial wheat chart */
+  drawChart('wheat');
+
+  /* Render mandi cards for wheat */
+  renderMandis('wheat');
+
+  /* Render the full price table */
+  renderTable('all');
+
+  /* Render saved alerts */
+  renderAlerts();
+
+  /* Set initial timestamp */
+  var now = new Date();
+  document.getElementById('lastUpdated').textContent =
+    'Last updated: ' + now.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+
+  /* Welcome message */
+  setTimeout(function() {
+    showToast('📊 Mandi prices loaded! Tap a crop to see chart.', '🌾');
+  }, 500);
+
+});
+
+</script>
+</body>
+</html>
